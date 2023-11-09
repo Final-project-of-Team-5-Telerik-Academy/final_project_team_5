@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from models.model_user import User
+from my_models.model_user import User
 from services.user_service import from_token, is_authenticated
 
 
