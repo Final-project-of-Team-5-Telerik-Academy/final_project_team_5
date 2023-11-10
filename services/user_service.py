@@ -1,123 +1,62 @@
-from data.database import read_query,insert_query
-from my_models.model_user import User 
-from datetime import datetime
+from data.database import read_query, insert_query, update_query
+from my_models.model_user import Role, User
+# from my_models.model_tournament import Tournament # Да се откоментира, когато се напише класа Tournament!
+from authentication.authenticator import find_by_email
+
 
 _SEPARATOR = ';'
 
-def read_users():
 
-    data = read_query('SELECT * FROM new_user')
-
-    return data
-
-def find_by_username(nickname: str) -> User | None:
-    data = read_query(
-        'SELECT * FROM new_user WHERE nickname = ?',
-        (nickname,))
-
-    return next((User.from_query_result(*row) for row in data), None)
-
-def find_user_by_id(id: int) -> User | None:
-    data = read_query(
-        'SELECT * FROM new_user WHERE id_of_user = ?',
-        (id,))
-
-    return data[0][2]
+def _hash_password(password: str):
+    ''' Used to hash a password of a user before saving it in the database.'''
+    from hashlib import sha256
+    return sha256(password.encode('utf-8')).hexdigest()
 
 
-def check_username_exist(nickname:str) -> bool:
+def try_login(email: str, password: str) -> User | None:
+    ''' Used to hash the login password and compare it with the existing password of the user in the database.'''
 
-    data = read_query(
-        'SELECT nickname FROM new_user WHERE nickname = ?',
-        (nickname,)
-    )
+    user = find_by_email(email)
 
-    return bool(data)
-
-def check_email_exist(email:str) -> bool:
-
-    data = read_query(
-        'SELECT email FROM new_user WHERE email = ?',
-        (email,)
-    )
-
-    return bool(data)
-
-def try_login(username: str, password: str) -> User | None:
-    user = find_by_username(username)
-
+    password = _hash_password(password)
     return user if user and user.password == password else None
 
-def create_token(user: User) -> str:
-    return f'{user.id}{_SEPARATOR}{user.nickname}'
 
-
-def is_authenticated(token: str) -> bool:
-    return any(read_query(
-        'SELECT 1 FROM new_user WHERE id_of_user = ? and nickname = ?',
-        token.split(_SEPARATOR)))
-
-
-def from_token(token: str) -> User | None:
-    _, nickname = token.split(_SEPARATOR)
-
-    return find_by_username(nickname)
-
-def get_username_by_token(token: str):
-    _, nickname = token.split(_SEPARATOR)
-    return nickname
-
-def create_user(email: str, nickname: str, password: str, dateOfBirth, gender: str) -> User | None:
-
-        generated_id = insert_query(
-            'INSERT INTO new_user(email, nickname, password, date_of_birth, gender) VALUES (?,?,?,?,?)',
-            (email, nickname, password, dateOfBirth, gender))
-
-        return User(id=generated_id, email=email,nickname=nickname, password=password, date=dateOfBirth, gender=gender)
-
-def find_user_by_token(token: str):
-
-    splitted_token = token.split(';')
-
-    return splitted_token[0]
-
-def find_username_by_token(token: str):
-
-    splitted_token = token.split(';')
-
-    return splitted_token[1]
-
-def find_username_by_id(username: str):
-    user = read_query('SELECT id_of_user FROM new_user WHERE nickname = ?', (username,))
+def create(full_name: str, email: str, password: str, gender: str) -> User | None:
+    ''' Automatically creates id for the user and inserts all the user's data in the database in the row of the same id.
     
-    if user:
-        return user[0][0]
+        Args:
+        - full_name: str
+        - email: str
+        - hashed password: str
+        - gender: str
+
+        Returns:
+            - Class User
+    '''
     
-def get_id_by_token(token: str):
-    user_id, _ = token.split(_SEPARATOR)
-    return int(user_id)
-
-def from_token_2(token: str) -> User | None:
-    user_id = get_id_by_token(token)
-    return find_id_by_token(user_id)
-
-def find_id_by_token(token: str) -> int | None:
-    data = read_query(
-        'SELECT id_of_user FROM new_user WHERE token = ?',
-        (token,))
+    password = _hash_password(password)
     
-    if data:
-        return data[0][0]
-    return None
+    role = Role.SPECTATOR
+    players_id = None
+
+    generated_id = insert_query(
+        'INSERT INTO users(full_name, email, password, gender, role, players_id) VALUES (?,?,?,?,?,?)',
+        (full_name, email, password, gender, role, players_id)
+    )
+
+    return User(id=generated_id, full_name=full_name, email=email, password='******', gender=gender, role=role, players_id=players_id)
 
 
-def get_username_by_user_id(user_id: int):
-    username = read_query('SELECT nickname FROM new_user WHERE id_of_user = ?',
-                          (user_id,))
-    return username[0][0]
+def delete_account(id: int):
+    ''' Used for deleting user's own account from the database.'''
 
-def find_nickname_by_new_id(id: int) -> User | None:
-    data = read_query(
-        'SELECT nickname FROM new_user WHERE id_of_user = ?',
-        (id,))
-    return data[0][0]
+    insert_query('''DELETE FROM users WHERE id = ?''',
+                 (id,))
+    
+
+# Да се откоментира, когато се напише класа Tournament! Проверява дали турнамента е създаден от същия директор. Може да се използва за edit или delete на турнамент.
+# def owns_tournament(user: User, tournament: Tournament) -> bool:
+#     ''' Used to compare the tournament.user_id with the user's token id.'''
+    
+#     return tournament.user_id == user.id
