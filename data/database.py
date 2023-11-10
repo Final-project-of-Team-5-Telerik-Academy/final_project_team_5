@@ -6,7 +6,7 @@ def _get_connection() -> Connection:
     return connect(
         user='root',
         password= my_password,
-        host='localhost',
+        host='127.0.0.1',
         port=3306,
         database='match_score_db')
 
@@ -17,7 +17,6 @@ def read_query(sql: str, sql_params=()):
         cursor.execute(sql, sql_params)
 
         return list(cursor)
-
 
 
 def insert_query(sql: str, sql_params=()) -> int:
