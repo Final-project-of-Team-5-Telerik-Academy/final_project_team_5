@@ -104,10 +104,6 @@ def is_authenticated(token: str) -> bool:
     return jwt.decode(token, _JWT_SECRET, algorithms=["HS256"])
 
 
-
-
-
-
 def get_user_from_token(token: str) -> User:
     '''Decodes JWT token and returns a User object.
     Args:

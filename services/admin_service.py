@@ -1,6 +1,10 @@
 from data.database import read_query, insert_query, update_query
 from my_models.model_user import User
+from my_models.model_player import Player
+from my_models.model_user import User
 
+from fastapi import HTTPException
+from services import util_service
 
 _SEPARATOR = ';'
 
@@ -101,3 +105,52 @@ def delete_players_id_from_user(id: int):
 
     insert_query('''DELETE players_id FROM users WHERE id = ?''',
                  (id,))
+
+# --------------------------------------------------------------------------------------
+
+def create_player(full_name: str, country: str, sport_club: str) -> Player:
+    ''' Used for creating a new player.
+
+    Args:
+        - full_name: Full name of the player
+        - country: Country of the player
+        - sport_club: Sport club of the player
+
+    Returns:
+        - Created player information
+    '''
+
+    if util_service.full_name_exists(full_name, 'players'):
+        raise HTTPException(status_code=400, detail=f'The full name: {full_name} is already taken!')
+
+
+    statistics_matches_id = None
+    audience_vote = 0
+    points = 0
+    titles = 0
+    wins = 0
+    losses = 0
+    money_prize = 0
+    is_injured = 0
+    is_active = 1
+    
+    generated_id = insert_query(
+        'INSERT INTO players(full_name, country, sport_club, audience_vote, points, titles, wins, losses, money_prize, is_injured, is_active, statistics_matches_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+        (full_name, country, sport_club, audience_vote, points, titles, wins, losses, money_prize, is_injured, is_active, statistics_matches_id)  
+    )
+
+    return Player(
+        id=generated_id,
+        full_name=full_name,
+        country=country,
+        sport_club=sport_club,
+        audience_vote=audience_vote,
+        points=points,
+        titles=titles,
+        wins=wins,
+        losses=losses,
+        money_prize=money_prize,
+        is_injured=is_injured,
+        is_active=is_active,
+        statistic_matches_id=statistics_matches_id
+    )
