@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Header, Query
 from services import util_service
 from services import admin_service
-from authentication.authenticator import get_user_or_raise_401
+from authentication.authenticator import get_user_or_raise_401, find_by_id
 from my_models.model_user import User
 from fastapi.responses import JSONResponse
-
+from services import util_service 
 
 admins_router = APIRouter(prefix='/admins', tags={'Everything available for Admins.'})
 
@@ -176,3 +176,37 @@ def delete_user(id: int = Query(..., description='Enter ID of the user you want 
     admin_service.delete_user(id)
         
     return {'User is deleted.'}
+
+
+# __________________________________________________________________________________________
+
+
+@admins_router.post('/create_player', description='Create a new player')
+def create_player(full_name: str = Query(..., description='Enter full name of player:'),
+                  country: str = Query(..., description='Enter country of player:'),
+                  sport_club: str = Query(..., description='Enter sport club of player:'),
+                  x_token: str = Header(default=None)):
+    ''' Used for creating a new player.
+
+    Args:
+        - full_name: Full name of the player
+        - country: Country of the player
+        - sport_club: Sport club of the player
+        - x_token: JWT token
+
+    Returns:
+        - Created player information
+    '''
+    if x_token == None:
+        return JSONResponse(status_code=401, content='You must be logged in and be an admin to be able to create a player.')    
+    
+    user = get_user_or_raise_401(x_token)
+    
+    if not User.is_admin(user):
+        return JSONResponse(status_code=401, content='You must be an admin to be able to create a player.')
+    
+    created_player = admin_service.create_player(full_name, country, sport_club)
+
+    return created_player
+
+   

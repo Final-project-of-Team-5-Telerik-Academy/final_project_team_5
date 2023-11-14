@@ -130,3 +130,5 @@ def delete_own_account(x_token: str = Header(default=None)):
         return JSONResponse(status_code=400, content='Unrecognized credentials.')
     
     return {'Your account has been deleted.'}
+
+
