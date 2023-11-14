@@ -4,43 +4,59 @@ from services import util_service
 from authentication.authenticator import get_user_or_raise_401, create_token
 from my_models.model_user import User
 from fastapi.responses import JSONResponse
+from email_validator import validate_email
 
 
 users_router = APIRouter(prefix='/users', tags={'Everything available for Users.'})
 
 
-@users_router.post('/register', description='You can register from here using your email.')
-def register(full_name: str = Query(..., description="Full name of the user."),
-             email: str = Query(..., description="User's email address."),
-             password: str = Query(..., description='The password has to be at least 6 characters!'),
-             gender: str = Query(..., description='Choose a gender male/female/non-binary.')):
+@users_router.post('/register', description='Please enter your personal information')
+def register(full_name: str = Query(..., description='Enter your full name:'),
+             email: str = Query(..., description='Enter your email address:'),
+             password: str = Query(..., description='Enter your password: (It has to be at least 6 characters!)'),
+             re_password: str = Query(..., description='Re enter your password for validation:'),
+             gender: str = Query(..., description='Choose a gender: male/female/non-binary')):
     ''' Used for registering new users.
     
     Args:
         - full_name(str): Query
         - email(str): Query
         - password(str): Query
+        - re_password(str): QUery
         - gender(str): Query
     
     Returns:
-        - Registered user as a spectator role
+        - Registered user as a default spectator role
     '''    
 
-    if util_service.email_exists(email):
-        return JSONResponse(status_code=400, content=f'This email is already taken!')
-    
-    if '@' not in email:
-            return JSONResponse(status_code=400, content="Email must contain '@' sign.")
-
     if util_service.full_name_exists(full_name, 'users'): 
-        return JSONResponse(status_code=400, content=f'This full name is already taken!')
-    else:
-        user = user_service.create(full_name, email, password, gender)
-        return user
+        return JSONResponse(status_code=400, content=f'The full name: {full_name} is already taken!')
+    
+    if util_service.email_exists(email):
+        return JSONResponse(status_code=400, content=f'The email: {email} is already taken!')
+    
+    try:
+        validate_email(email, check_deliverability=False)
+    except:
+        return JSONResponse(status_code=400, content='Email is not valid.')
+    
+    if len(password) < 6:
+        return JSONResponse(status_code=400, content='Password must be at least 6 characters long.')
+    
+    if password != re_password:
+        return JSONResponse(status_code=400, content="The password doesn't match.")
+    
+    if gender != 'male' and gender != 'female' and gender != 'non-binary' and gender != 'Male' and gender != 'Female' and gender != 'Non-binary':
+        return JSONResponse(status_code=404, content="Gender must be one of the following: 'male', 'female' or 'non-binary'.")
+
+    user = user_service.create(full_name, email, password, gender)
+    
+    return user
 
 
-@users_router.post('/login', description='You can login from here using your email and your password.')
-def login(email: str = Query(), password: str = Query()):
+@users_router.post('/login', description='Please enter your personal information')
+def login(email: str = Query(..., description='Enter your email address:'), 
+          password: str = Query(..., description='Enter your password:')):
     ''' Used for logging in.
 
     Args:
@@ -50,21 +66,34 @@ def login(email: str = Query(), password: str = Query()):
     Returns:
         - JWT token
     '''
-
+    
+    try:
+        validate_email(email, check_deliverability=False)
+    except:
+        return JSONResponse(status_code=400, content='Email is not valid.')
+    
     user = user_service.try_login(email, password)
 
     if user:
         token = create_token(user)
         return {'token': token}
     else:
-        return JSONResponse(status_code=404, content='Invalid login data!')
+        return JSONResponse(status_code=400, content='Invalid login data!')
 
 
 @users_router.get('/info', description='Your personal user information.')
 def my_user_information(x_token: str = Header(default=None)):
+    ''' Used to see information about the profile.
+    
+    Args:
+        - JWT token
+    
+    Returns:
+        - user(id, full_name, email, gender, role and players_id)
+    '''
     
     if x_token == None:
-        raise JSONResponse(status_code=401, detail='You must be logged in to view your personal user information.')
+        return JSONResponse(status_code=401, content='You must be logged in to view your personal information.')
     
     user = get_user_or_raise_401(x_token)
 
@@ -96,8 +125,8 @@ def delete_own_account(x_token: str = Header(default=None)):
     elif User.is_director(user):
         user_service.delete_account(user.id)
     elif User.is_admin(user):
-        user_service.delete_account(user.id)
+        return JSONResponse(status_code=401, content="Admin is not allowed to delete his/her's/it's account.")
     else:
-        return JSONResponse(status_code=404, content='Unrecognized credentials.')
+        return JSONResponse(status_code=400, content='Unrecognized credentials.')
     
     return {'Your account has been deleted.'}

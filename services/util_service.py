@@ -10,6 +10,15 @@ def id_exists(id: int, table_name: str) -> bool:
             (id,)))
 
 
+def players_id_exists(players_id: int, table_name: str) -> bool:
+    ''' Used to check if the players_id is already connected to another user in the database.'''
+
+    return any(
+        read_query(
+            f'SELECT players_id FROM {table_name} WHERE players_id = ?',
+            (players_id,)))
+
+
 def email_exists(email:str) -> bool:
     ''' Used to check if the email exists in users table in the database.'''
 
