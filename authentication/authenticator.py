@@ -103,3 +103,29 @@ def is_authenticated(token: str) -> bool:
 
     return jwt.decode(token, _JWT_SECRET, algorithms=["HS256"])
 
+
+
+
+
+
+def get_user_from_token(token: str) -> User:
+    '''Decodes JWT token and returns a User object.
+    Args:
+        - token (str): Encoded JWT token
+    Returns:
+        - User object
+    '''
+    try:
+        payload = is_authenticated(token)
+        user_id = payload['id']
+
+        user = find_by_id(user_id)
+        if user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        return user
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=str(e))

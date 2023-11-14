@@ -1,5 +1,6 @@
 from data.database import insert_query, read_query
 from my_models.model_match import Match
+from my_models.model_user import User
 
 
 def get_all_matches():
@@ -30,11 +31,11 @@ def get_sorted_matches(sort: str):
     return result
 
 
-# TODO: connect with real players
+
 def create_match(date: str,
                  title: str,
-                 player_1: str,
-                 player_2: str,
+                 player_1: User,
+                 player_2: User,
                  match_format: str,
                  prize: int,
                  creator: str,
@@ -43,6 +44,8 @@ def create_match(date: str,
         '''INSERT INTO matches (title, player_1, player_2, date, format, prize, tournament_name, users_creator_id
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
         (date, title, player_1, player_2, match_format, prize, creator, tournament_name))
+
+
 
     result = Match(id=generated_match,
                    date = date,
