@@ -2,6 +2,7 @@ from private_password import my_password
 from mariadb import connect
 from mariadb.connections import Connection
 
+
 def _get_connection() -> Connection:
     return connect(
         user='root',

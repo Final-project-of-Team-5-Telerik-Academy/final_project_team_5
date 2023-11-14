@@ -1,10 +1,10 @@
-from pydantic import BaseModel, validator, constr
+from pydantic import BaseModel
 from fastapi import HTTPException
-# import re
 
 
 class Role:
     SPECTATOR = 'spectator'
+    PLAYER = 'player'
     DIRECTOR = 'director'
     ADMIN = 'admin'
 
@@ -24,20 +24,6 @@ class User(BaseModel):
     players_id: int | None = None
 
 
-    @validator('password')
-    def validate_password_length(cls, password):
-        if len(password) < 6:
-            raise HTTPException(status_code=400, detail='Password must be at least 6 characters long.')
-        return password
-    
-
-    @validator('gender')
-    def validate_gender(cls, value):
-        if value not in ['male', 'female', 'non-binary', 'Male', 'Female', 'Non-binary']:
-            raise HTTPException(status_code=404, detail="Gender must be one of these: 'male', 'female' or 'non-binary'.")
-        return value
-
-
     def is_spectator(self):
         ''' Compares the user's role if it's a spectator when a JWT token is written in the Header.
         
@@ -46,6 +32,15 @@ class User(BaseModel):
         '''
 
         return self.role == Role.SPECTATOR
+    
+    def is_player(self):
+        ''' Compares the user's role if it's a player when a JWT token is written in the Header.
+        
+        Returns:
+            - True/False
+        '''
+
+        return self.role == Role.PLAYER
 
 
     def is_director(self):
