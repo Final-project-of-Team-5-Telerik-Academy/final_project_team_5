@@ -1,10 +1,9 @@
 from fastapi import APIRouter, Header, Query
-from services import util_service
+from services import shared_service
 from services import admin_service
-from authentication.authenticator import get_user_or_raise_401, find_by_id
+from authentication.authenticator import get_user_or_raise_401
 from my_models.model_user import User
 from fastapi.responses import JSONResponse
-from services import util_service 
 
 admins_router = APIRouter(prefix='/admins', tags={'Everything available for Admins.'})
 
@@ -37,7 +36,7 @@ def user_info(id: int = Query(default=None, description="Enter ID of user:"),
             return JSONResponse(status_code=400, content='You are allowed to search users either by id or by role, but not by both at the same time.')
     
     elif id != None and role == None:
-        if not util_service.id_exists(id, 'users'):
+        if not shared_service.id_exists(id, 'users'):
             return JSONResponse(status_code=404, content=f'User with id: {id} does not exist.')
         else:
             return admin_service.find_user_by_id(id)
@@ -77,7 +76,7 @@ def edit_users_role(id: int = Query(..., description='Enter ID of user:'),
     if not User.is_admin(user):
         return JSONResponse(status_code=401, content='Only admins can edit accounts.')
 
-    if not util_service.id_exists(id, 'users'):
+    if not shared_service.id_exists(id, 'users'):
         return JSONResponse(status_code=404, content=f'User with id: {id} does not exist.')
     
     old_user = admin_service.find_user_by_id(id)
@@ -92,11 +91,11 @@ def edit_users_role(id: int = Query(..., description='Enter ID of user:'),
     
     # connect user's account with player's account:
     elif new_role == None and players_id != None:
-        if not util_service.id_exists(players_id, 'players'):
+        if not shared_service.id_exists(players_id, 'players'):
             return JSONResponse(status_code=404, content=f'Player with id: {players_id} does not exist.')
         
         # !!! да се тества след като се добави Player модел !!!
-        if util_service.players_id_exists(players_id, 'users'):
+        if shared_service.players_id_exists(players_id, 'users'):
             return JSONResponse(status_code=400, content=f'Player with id: {players_id} is already connected to a user.')
         
         new_role = 'player'
@@ -170,43 +169,9 @@ def delete_user(id: int = Query(..., description='Enter ID of the user you want 
     if not User.is_admin(user):
         return JSONResponse(status_code=401, content='You must be an admin to be able to delete a user.')
     
-    if not util_service.id_exists(id, 'users'):
+    if not shared_service.id_exists(id, 'users'):
         return JSONResponse(status_code=404, content=f'User with id: {id} does not exist.')
     
     admin_service.delete_user(id)
         
     return {'User is deleted.'}
-
-
-# __________________________________________________________________________________________
-
-
-@admins_router.post('/create_player', description='Create a new player')
-def create_player(full_name: str = Query(..., description='Enter full name of player:'),
-                  country: str = Query(..., description='Enter country of player:'),
-                  sport_club: str = Query(..., description='Enter sport club of player:'),
-                  x_token: str = Header(default=None)):
-    ''' Used for creating a new player.
-
-    Args:
-        - full_name: Full name of the player
-        - country: Country of the player
-        - sport_club: Sport club of the player
-        - x_token: JWT token
-
-    Returns:
-        - Created player information
-    '''
-    if x_token == None:
-        return JSONResponse(status_code=401, content='You must be logged in and be an admin to be able to create a player.')    
-    
-    user = get_user_or_raise_401(x_token)
-    
-    if not User.is_admin(user):
-        return JSONResponse(status_code=401, content='You must be an admin to be able to create a player.')
-    
-    created_player = admin_service.create_player(full_name, country, sport_club)
-
-    return created_player
-
-   
