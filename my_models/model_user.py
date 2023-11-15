@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-from fastapi import HTTPException
 
 
 class Role:
@@ -32,6 +31,7 @@ class User(BaseModel):
         '''
 
         return self.role == Role.SPECTATOR
+    
     
     def is_player(self):
         ''' Compares the user's role if it's a player when a JWT token is written in the Header.

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Header, Query
 from services import user_service
-from services import util_service
+from services import shared_service
 from authentication.authenticator import get_user_or_raise_401, create_token
 from my_models.model_user import User
 from fastapi.responses import JSONResponse
@@ -29,10 +29,10 @@ def register(full_name: str = Query(..., description='Enter your full name:'),
         - Registered user as a default spectator role
     '''    
 
-    if util_service.full_name_exists(full_name, 'users'): 
+    if shared_service.full_name_exists(full_name, 'users'): 
         return JSONResponse(status_code=400, content=f'The full name: {full_name} is already taken!')
     
-    if util_service.email_exists(email):
+    if shared_service.email_exists(email):
         return JSONResponse(status_code=400, content=f'The email: {email} is already taken!')
     
     try:
@@ -86,7 +86,7 @@ def my_user_information(x_token: str = Header(default=None)):
     ''' Used to see information about the profile.
     
     Args:
-        - JWT token
+        - JWT token(Header)
     
     Returns:
         - user(id, full_name, email, gender, role and players_id)
@@ -101,7 +101,7 @@ def my_user_information(x_token: str = Header(default=None)):
     # if not utils_service.id_exists(id, 'users'):
     #     raise JSONResponse(status_code=404, detail=f'User with id {id} does not exist.')
     
-    return User(id=user.id, full_name=user.full_name, email=user.email, password='******', gender=user.gender, role=user.role)
+    return User(id=user.id, full_name=user.full_name, email=user.email, password='******', gender=user.gender, role=user.role, players_id=user.players_id)
 
 
 @users_router.delete('/delete')
@@ -109,7 +109,7 @@ def delete_own_account(x_token: str = Header(default=None)):
     ''' Used for deleting own account.
 
     Args:
-        - JWT token
+        - JWT token(Header)
     
     Returns:
         - Deleted user
@@ -132,3 +132,69 @@ def delete_own_account(x_token: str = Header(default=None)):
     return {'Your account has been deleted.'}
 
 
+@users_router.post('/matchrequest', description="Please fill the form to send a match request to another user with connected player's account")
+def match_request(message: str = Query(default=None, description='Enter your message:'),
+             receiver_id: int = Query(..., description='To whom do you want to send the friendly match request?'),
+             x_token: str = Header(default=None)):
+    ''' Used to send a friendly match request to another user with a connected player's account.
+    
+    Args:
+        - message(str): Query
+        - receiver_id(int): Query
+        - JWT token(Header)
+    
+    Returns:
+        - Created friendly match request
+    '''
+
+    if x_token == None:
+        return JSONResponse(status_code=401, content='You must be logged in to send a friendly match request.')    
+    
+    user = get_user_or_raise_401(x_token)
+
+    if User.is_player(user):
+        if not shared_service.id_exists(receiver_id, 'users'):
+            return JSONResponse(status_code=400, content=f'User with id: {receiver_id} does not exist.')
+        if user.players_id == None:
+            return JSONResponse(status_code=401, content=f"Your user's account is not connected to a player's account. Only Users linked to their players accounts are allowed to send friendly match requests.")
+        if message == None:
+            return JSONResponse(status_code=400, content='You must write a message.')
+        # проверка дали е активен player акаунта
+        
+        sender_id = user.id
+        result = user_service.send_friendly_match_request(message, sender_id, receiver_id)
+        
+    else:
+        return JSONResponse(status_code=401, content="Only users with connected player's account and with 'player' role can send a friendly match request.")
+    
+    return result
+    
+
+@users_router.get('/matchrequest', description='All friendly match requests.')
+def all_match_requests(option: str = Query(default=None, description="Choose between 'sent' and 'received':"),
+                                x_token: str = Header(default=None)):
+    ''' Used to to get all sent and received friendly match requests.
+    
+    Args:
+        - JWT token(Header)
+    
+    Returns:
+        - list of all friendly match requests
+    '''
+
+    if x_token == None:
+        return JSONResponse(status_code=401, content='You must be logged in to be able to see your sent and received friendly match requests.')
+    
+    user = get_user_or_raise_401(x_token)
+    
+    if not User.is_player(user):
+        return JSONResponse(status_code=401, content="Only user's with connected player's accounts and 'player' role are allowed see their sent and received friendly match requests.")
+    
+    if option != 'sent' and option != 'received':
+        return JSONResponse(status_code=400, content="Unrecognized command.")
+    
+    if option == 'sent':
+        return user_service.find_all_sent_friendly_match_requests(user.id)
+    
+    elif option == 'received':
+        return user_service.find_all_received_friendly_match_requests(user.id)

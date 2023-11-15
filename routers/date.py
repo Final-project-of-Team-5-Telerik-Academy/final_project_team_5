@@ -14,15 +14,14 @@ def check_current_date():
     return {"Today is": info}
 
 
-
-@date_router.post('/{date}', description='Set specific date in the future in format "yyyy-mm-dd" (2023-3-15).')
+@date_router.post('/{date}', description='Set specific date in the future in format "yyyy-mm-dd" (2023-03-15).')
 def set_specific_date(date: str):
     # check format is correct
     try:
         new_date = datetime.strptime(date, "%Y-%m-%d")
         new_date = datetime.date(new_date)
     except ValueError:
-        return JSONResponse(status_code=400, content="The date must be in format 'yyyy-mm-dd' (2023-3-15)")
+        return JSONResponse(status_code=400, content="The date must be in format 'yyyy-mm-dd' (2023-03-15)")
 
     # check if date is not in past
     date_service.date_is_in_future(date)
