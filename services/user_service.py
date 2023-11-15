@@ -1,5 +1,6 @@
-from data.database import read_query, insert_query, update_query
+from data.database import read_query, insert_query
 from my_models.model_user import Role, User
+from my_models.model_friendly_match_requests import FriendlyMatchRequests
 # from my_models.model_tournament import Tournament # Да се откоментира, когато се напише класа Tournament!
 from authentication.authenticator import find_by_email
 
@@ -55,7 +56,55 @@ def delete_account(id: int):
                  (id,))
     
 
-# Да се откоментира, когато се напише класа Tournament! Проверява дали турнамента е създаден от същия директор. Може да се използва за edit или delete на турнамент.
+def send_friendly_match_request(message: str, sender_id: int, receiver_id: int) -> FriendlyMatchRequests | None:
+    ''' Automatically creates id for the friendly match request.
+    
+        Args:
+            - message: str
+            - sender_id: int
+            - receiver_id
+
+        Returns:
+            - friendly match request
+    '''
+    
+    status = 'pending'
+
+    generated_id = insert_query(
+        'INSERT INTO friendly_match_requests (message, sender_id, receiver_id, status) VALUES (?,?,?,?)',
+        (message, sender_id, receiver_id, status)
+    )
+
+    return FriendlyMatchRequests(id=generated_id, message=message, sender_id=sender_id, receiver_id=receiver_id, status=status)
+
+
+def find_all_sent_friendly_match_requests(id: int) -> FriendlyMatchRequests | None:
+    ''' Search in the database and creates a list of all sent friendly match requests.
+    
+    Returns:
+        - a list of all sent friendly match requests (id, message, sender_id, receiver_id, status)
+    '''
+
+    data = read_query('SELECT id, message, sender_id, receiver_id, status FROM friendly_match_requests WHERE sender_id = ?',
+        (id,))
+
+    return next((FriendlyMatchRequests.from_query_result(*row) for row in data), None)
+
+
+def find_all_received_friendly_match_requests(id: int) -> FriendlyMatchRequests | None:
+    ''' Search in the database and creates a list of all received friendly match requests.
+    
+    Returns:
+        - a list of all received friendly match requests (id, message, sender_id, receiver_id, status)
+    '''
+
+    data = read_query('SELECT id, message, sender_id, receiver_id, status FROM friendly_match_requests WHERE receiver_id = ?',
+        (id,))
+
+    return next((FriendlyMatchRequests.from_query_result(*row) for row in data), None)
+
+
+# !!! Да се откоментира, когато се напише класа Tournament! Проверява дали турнамента е създаден от същия директор. Може да се използва за edit или delete на турнамент. !!!
 # def owns_tournament(user: User, tournament: Tournament) -> bool:
 #     ''' Used to compare the tournament.user_id with the user's token id.'''
     

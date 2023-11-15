@@ -4,6 +4,7 @@ from services import match_service, player_service
 from authentication.authenticator import get_user_or_raise_401, get_user_from_token
 from typing import Annotated
 from my_models import model_user
+from my_models.model_user import User
 
 
 
@@ -19,11 +20,15 @@ def create_match(token: str = Header(),
                  tournament_name: Annotated[str | None, Query(min_length=5)] = None):
 
     # check if authenticated
-    get_user_or_raise_401(token)
+    user = get_user_or_raise_401(token)
 
     # check role
     user = get_user_from_token(token)
     if not user.role == "director" or not user.role == 'admin':
+        return JSONResponse(status_code=403, content='Only Admin and Director can create a match')
+
+    # check role
+    if not User.is_director(user) and not User.is_admin(user):
         return JSONResponse(status_code=403, content='Only Admin and Director can create a match')
 
     # check if the date is in the past
