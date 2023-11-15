@@ -60,3 +60,5 @@ def delete_account(id: int):
 #     ''' Used to compare the tournament.user_id with the user's token id.'''
     
 #     return tournament.user_id == user.id
+
+

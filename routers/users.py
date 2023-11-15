@@ -5,6 +5,9 @@ from authentication.authenticator import get_user_or_raise_401, create_token
 from my_models.model_user import User
 from fastapi.responses import JSONResponse
 from email_validator import validate_email
+from my_models.model_player import Player
+from services.player_service import get_player_by_id
+
 
 
 users_router = APIRouter(prefix='/users', tags={'Everything available for Users.'})
@@ -131,4 +134,49 @@ def delete_own_account(x_token: str = Header(default=None)):
     
     return {'Your account has been deleted.'}
 
+
+@users_router.get('/players', description= 'Player information:')
+def find_all_players(x_token: str = Header(default=None, description='Your identification token:')):
+    
+    if x_token is None:
+        return JSONResponse(status_code=401, content='You must be logged in to view the list of players.')
+    
+    user = get_user_or_raise_401(x_token)
+
+    if User.is_spectator(user):
+        list_of_players = util_service.find_all_players()
+    elif User.is_player(user):
+        list_of_players = util_service.find_all_players()
+    elif User.is_director(user):
+        list_of_players = util_service.find_all_players() 
+    elif User.is_admin(user):
+        list_of_players = util_service.find_all_players()
+    else: 
+        return JSONResponse(status_code=401, content='Unrecognized credentials.')
+
+    return list_of_players
+
+
+@users_router.get('/players_by_id', description='Your identification token:')
+def find_player_by_id(id:int = Query(..., description='Enter id of the player:'), x_token: str = Header(default=None)):
+    
+    if x_token is None:
+        return JSONResponse(status_code=401, content='You must be logged in to see the players information.')
+    
+    user = get_user_or_raise_401(x_token)
+
+
+    if not util_service.id_exists(id, 'players'):
+            return JSONResponse(status_code=404, content=f'Player with id: {id} does not exist.')
+    if User.is_spectator(user):
+        player = get_player_by_id(id)
+    elif User.is_player(user):
+        player = get_player_by_id(id)
+    elif User.is_director(user):
+        player = get_player_by_id(id) 
+    elif User.is_admin(user):
+        player = get_player_by_id(id)
+    else: 
+        return JSONResponse(status_code=401, content='Unrecognized credentials.')
+    return player
 
