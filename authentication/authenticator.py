@@ -21,24 +21,6 @@ def get_user_or_raise_401(token: str) -> User:
         raise HTTPException(status_code=401)
     
 
-def compare_token(token: str) -> User:
-    ''' Drags the id from the token so it can be compared.
-
-    Args:
-        - token (str): text with indents
-
-    Returns:
-        - id of the token
-    '''
-
-    try:
-        payload = is_authenticated(token)
-        payload = find_by_email(payload['email'])
-        return payload.id
-    except:
-        raise HTTPException(status_code=401)
-    
-
 def find_by_email(email: str) -> User | None:
     ''' Drags the id from the token so it can be compared.
 
@@ -98,7 +80,8 @@ def is_authenticated(token: str) -> bool:
         - encoded JWT token
     
     Returns:
-        - user: id(int), email(str)
+        - user: id(int)
+        - email: (str)
     '''
 
     return jwt.decode(token, _JWT_SECRET, algorithms=["HS256"])

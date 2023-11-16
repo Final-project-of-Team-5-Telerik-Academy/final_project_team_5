@@ -18,7 +18,6 @@ def get_match_by_title(title: str):
     return result
 
 
-
 def get_sorted_matches(sort: str):
     if sort == 'ascending':
         sort = 'ASC'
@@ -29,7 +28,6 @@ def get_sorted_matches(sort: str):
         FROM match_score_db.matches ORDERED BY title {sort}''')
     result = (Match.from_query_result(*row) for row in data)
     return result
-
 
 
 def create_match(date: str,
