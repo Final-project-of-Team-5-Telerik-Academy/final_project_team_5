@@ -1,4 +1,5 @@
 from data.database import read_query, insert_query
+from datetime import datetime
 from fastapi.responses import JSONResponse
 
 
@@ -9,13 +10,14 @@ def current_date():
     return today_is
 
 
-def add_date(date: str):
+
+def add_date(date):
     insert_query('INSERT INTO dates(date) VALUE (?)', (date,))
-    return {f'The current date is set to {date}.'}
+    return {f'The current date is set to {date}'}
 
 
 def date_is_in_future(date):
     today = current_date()
-    if today >= date:
-        return JSONResponse(status_code=400, content="The date must be in teh future!")
-    return True
+    date = datetime.strptime(date, "%Y-%m-%d").date()
+
+    return True if date >= today else False
