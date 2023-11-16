@@ -20,7 +20,7 @@ class Player(BaseModel):
         ''' When query is used in another function.
         
         Returns:
-            - id, full_name, country, sport_club, audience_vote, points, titles, wins, losses, money_prize, is_injured, is_active, statistic_matches_id
+            - id, full_name, country, sport_club, audience_vote, points, titles, wins, losses, money_prize, is_injured, is_active, statistics_matches_id
         '''
 
         return cls(

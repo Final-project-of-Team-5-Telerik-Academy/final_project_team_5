@@ -109,3 +109,5 @@ def find_all_received_friendly_match_requests(id: int) -> FriendlyMatchRequests 
 #     ''' Used to compare the tournament.user_id with the user's token id.'''
     
 #     return tournament.user_id == user.id
+
+
