@@ -7,10 +7,10 @@ from fastapi.responses import JSONResponse
 from email_validator import validate_email
 from my_models.model_player import Player
 from services.player_service import get_player_by_id
+from my_models.model_admin_requests import AdminRequests
 
 
-
-users_router = APIRouter(prefix='/users', tags={'Everything available for Users.'})
+users_router = APIRouter(prefix='/users', tags={'Users'})
 
 
 @users_router.post('/register', description='Please enter your personal information')
@@ -135,7 +135,7 @@ def delete_own_account(x_token: str = Header(default=None)):
     return {'Your account has been deleted.'}
 
 
-@users_router.get('/players', description= 'Player information:')
+@users_router.get('/info/players', description= 'Show all players:')
 def find_all_players(x_token: str = Header(default=None, description='Your identification token:')):
     
     if x_token is None:
@@ -157,7 +157,7 @@ def find_all_players(x_token: str = Header(default=None, description='Your ident
     return list_of_players
 
 
-@users_router.get('/players_by_id', description='Your identification token:')
+@users_router.get('/info/players/id', description='Find player:')
 def find_player_by_id(id:int = Query(..., description='Enter id of the player:'), x_token: str = Header(default=None)):
     
     if x_token is None:
@@ -179,44 +179,34 @@ def find_player_by_id(id:int = Query(..., description='Enter id of the player:')
         return JSONResponse(status_code=401, content='Unrecognized credentials.')
     return player
 
-
-@users_router.post('/matchrequest', description="Please fill the form to send a match request to another user with connected player's account")
-def match_request(message: str = Query(default=None, description='Enter your message:'),
-             receiver_id: int = Query(..., description='To whom do you want to send the friendly match request?'),
+    
+@users_router.post('/requests', description="Please fill the form to sent a connection/promotion request:")
+def requests(type_of_request: str = Query(default=None, description="Choose between 'connection' or 'promotion':"),
+             players_id: int = Query(default=None, description="Enter ID of the player's account:"),
              x_token: str = Header(default=None)):
-    ''' Used to send a friendly match request to another user with a connected player's account.
     
-    Args:
-        - message(str): Query
-        - receiver_id(int): Query
-        - JWT token(Header)
-    
-    Returns:
-        - Created friendly match request
-    '''
-
     if x_token == None:
         return JSONResponse(status_code=401, content='You must be logged in to send a friendly match request.')    
     
     user = get_user_or_raise_401(x_token)
+    users_id = user.id
 
-    if User.is_player(user):
-        if not shared_service.id_exists(receiver_id, 'users'):
-            return JSONResponse(status_code=400, content=f'User with id: {receiver_id} does not exist.')
-        if user.players_id == None:
-            return JSONResponse(status_code=401, content=f"Your user's account is not connected to a player's account. Only Users linked to their players accounts are allowed to send friendly match requests.")
-        if message == None:
-            return JSONResponse(status_code=400, content='You must write a message.')
-        # проверка дали е активен player акаунта
-        
-        sender_id = user.id
-        result = user_service.send_friendly_match_request(message, sender_id, receiver_id)
-        
+    if AdminRequests.is_connected(type_of_request):
+        if User.is_spectator(user):
+            if user.players_id != None:
+                return JSONResponse(status_code=400, content="You are already connected to a player name #TODO")
+            
+            return user_service.send_connection_request(type_of_request, players_id, users_id)
+        else:
+            return JSONResponse(status_code=401, content="You must be a spectator to be able to connect to your player's account.")
+    
+    elif AdminRequests.is_promoted(type_of_request):
+        if User.is_player(user):
+            return user_service.send_promotion_request(type_of_request, users_id)
+        return JSONResponse(status_code=401, content="You must be with a player role to ask for promotion!")
     else:
-        return JSONResponse(status_code=401, content="Only users with connected player's account and with 'player' role can send a friendly match request.")
-    
-    return result
-    
+        return JSONResponse(status_code=400, content="Unrecognized type of request!")
+
 
 @users_router.get('/matchrequest', description='All friendly match requests.')
 def all_match_requests(option: str = Query(default=None, description="Choose between 'sent' and 'received':"),
@@ -246,3 +236,4 @@ def all_match_requests(option: str = Query(default=None, description="Choose bet
     
     elif option == 'received':
         return user_service.find_all_received_friendly_match_requests(user.id)
+    

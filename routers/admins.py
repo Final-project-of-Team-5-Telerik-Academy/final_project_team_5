@@ -5,7 +5,7 @@ from authentication.authenticator import get_user_or_raise_401
 from my_models.model_user import User
 from fastapi.responses import JSONResponse
 
-admins_router = APIRouter(prefix='/admins', tags={'Everything available for Admins.'})
+admins_router = APIRouter(prefix='/admins', tags={'Admins'})
 
 
 @admins_router.get('/info/users')

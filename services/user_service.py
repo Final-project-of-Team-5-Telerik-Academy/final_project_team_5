@@ -1,9 +1,9 @@
-from data.database import read_query, insert_query
+from data.database import read_query, insert_query, update_query
 from my_models.model_user import Role, User
 from my_models.model_friendly_match_requests import FriendlyMatchRequests
 # from my_models.model_tournament import Tournament # Да се откоментира, когато се напише класа Tournament!
 from authentication.authenticator import find_by_email
-
+from my_models.model_admin_requests import AdminRequests
 
 _SEPARATOR = ';'
 
@@ -110,4 +110,30 @@ def find_all_received_friendly_match_requests(id: int) -> FriendlyMatchRequests 
     
 #     return tournament.user_id == user.id
 
+
+def send_connection_request(type_of_request:str, players_id:int, users_id:int) -> AdminRequests | None:
+
+    status = 'pending'
+
+    generated_id = insert_query(
+        'INSERT INTO admin_requests(type_of_request, players_id, users_id, status) VALUES (?,?,?,?)',
+        (type_of_request, players_id, users_id, status)
+    )
+
+    return AdminRequests(id=generated_id, type_of_request=type_of_request, players_id=players_id, users_id=users_id, status=status)
+
+
+def send_promotion_request(type_of_request:str, players_id: None, users_id:int) -> AdminRequests | None:
+    
+    status = 'pending'
+
+    generated_id = insert_query(
+        'INSERT INTO admin_requests(type_of_request, players_id, users_id, status) VALUES (?,?,?,?)',
+        (type_of_request, players_id, users_id, status)
+    )
+    is_active = 1
+    players_id = User.players_id #TODO
+    update_query('''UPDATE players SET is_active = ? WHERE id = ?''',
+                (is_active, players_id))
+    return AdminRequests(id=generated_id, type_of_request=type_of_request, players_id=players_id, users_id=users_id, status=status)
 
