@@ -32,17 +32,28 @@ def get_tournament_id_by_title(title: str):
 
 
 def get_tournament_by_title(title: str):
-    row_data = read_query(f'SELECT * FROM tournaments WHERE title = {title}')
-    tournament = Tournament.from_query_result(*row_data)
+    row_data = read_query('''SELECT id, title, format, date, prize, game_type, users_creator_id, is_finished 
+        FROM tournaments WHERE title = ?''', (title,))
 
-    return None if not tournament else tournament
+    data = row_data[0]
+    id = data[0]
+    title = data[1]
+    format = data[2]
+    date = data[3]
+    prize = data[4]
+    game_type = data[5]
+    creator = data[6]
+    is_finished = data[7]
+
+    tournament = Tournament.from_query_result(*data)
+    return tournament
 
 
 
 def get_game_format(t_title):
-    game_format = read_query(f'SELECT team_game_or_one_on_one FROM tournaments WHERE title = {t_title}')
-    return game_format
-
+    game_format = read_query(f'SELECT game_type FROM tournaments WHERE title = ?', (t_title,))
+    result = game_format[0][0]
+    return result
 
 def add_player_or_team(player: Player, tournament: Tournament):
     tournament.players_or_teams.append(player)

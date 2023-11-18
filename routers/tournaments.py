@@ -17,8 +17,8 @@ def create_tournament(token: str = Header(),
                       title: str = Query(min_length=5),
                       format: str = Form(..., description="Select an option",
                                          example='knockout', enum=['knockout', 'league']),
-                      team_game_or_one_on_one: str = Form(..., description="Select an option",
-                                                      example='players', enum=['one_on_one', 'team_game']),
+                      game_type: str = Form(..., description="Select an option",
+                                            example='players', enum=['one on one', 'team game']),
                       date: str = Query(description='write date in format yyyy-mm-dd'),
                       prize: int = Query(gt=-1)):
 
@@ -36,16 +36,16 @@ def create_tournament(token: str = Header(),
 
 # creating new tournament
     date = datetime.strptime(date, "%Y-%m-%d").date()
-    created_tournament = tournament_service.create_tournament(
-        title, format, date, prize, creator, team_game_or_one_on_one)
+    new_tournament = tournament_service.create_tournament(
+        title, format, date, prize, game_type, creator)
 
-    return created_tournament
+    return new_tournament
 
 
 
 "ADD TEAM/PLAYER TO TOURNAMENT"
 @tournaments_router.put('/add/{players}')
-def add_team_or_player_to_tournament(token, t_title: str, pt_name: str):
+def add_team_or_player_to_tournament(t_title: str, pt_name: str, token):
     tournament = tournament_service.get_tournament_by_title(t_title)
 
 # check if authenticated
@@ -69,8 +69,9 @@ def add_team_or_player_to_tournament(token, t_title: str, pt_name: str):
         return f'the tournament {tournament.title} is finished.'
 
 # check if player exists
-    if game_format == 'one_on_one':
-        if not player_service.get_player_by_full_name(pt_name):
+    table = 'players'
+    if game_format == 'one on one':
+        if not shared_service.full_name_exists(pt_name, table):
             return JSONResponse(status_code=404, content=f'Player {pt_name} not found.')
 
         player = player_service.get_player_by_full_name(pt_name)
@@ -78,11 +79,11 @@ def add_team_or_player_to_tournament(token, t_title: str, pt_name: str):
         return result
 
 
-
 # check if team exists
     elif game_format == 'team_game':
         if not team_service.team_exists(pt_name):
             return JSONResponse(status_code=404, content=f'Team {pt_name} not found.')
+
 
 
 

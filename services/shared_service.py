@@ -143,4 +143,3 @@ def get_creator_full_name(table: str, title: str):
     # get creator full name from tables: Matches and Tournaments
     creator_name = read_query(f'SELECT creator FROM {table} WHERE title = ?', (title, ))
     return creator_name if creator_name else None
-

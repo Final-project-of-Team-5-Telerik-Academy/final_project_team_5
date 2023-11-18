@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+
 class Player(BaseModel):
     id: int | None = None
     full_name: str
@@ -12,7 +13,7 @@ class Player(BaseModel):
     @classmethod
     def from_query_result(cls, id, full_name, country, sports_club, is_active, is_connected, statistics_matches_id):
         ''' When query is used in another function.
-        
+
         Returns:
             - id, full_name, country, sports_club, is_active, is_connected, statistics_matches_id
         '''
@@ -25,4 +26,4 @@ class Player(BaseModel):
             is_active=is_active,
             is_connected=is_connected,
             statistics_matches_id=statistics_matches_id
-            )
+        )

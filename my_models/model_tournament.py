@@ -1,5 +1,7 @@
 from pydantic import BaseModel, constr
 from datetime import date
+from services import user_service
+
 
 class Tournament(BaseModel):
     id: int | None
@@ -8,20 +10,25 @@ class Tournament(BaseModel):
     date: date
     prize: int
     game_type: str
-    creator: str
+    creator: str | int
     is_finished: bool
     players_or_teams: list | str = None
 
 
     @classmethod
-    def from_query_result(cls, id, title, format, date, prize, game_type,
-                          creator, status, players_or_teams):
+    def from_query_result(cls, id, title, format, date, prize,
+                          game_type, creator_id, is_finished):
+
+        creator_name = user_service.get_user_full_name_by_id(creator_id)
+        pt_list = []
         return cls(id = id,
                    title = title,
                    format = format,
                    date = date,
                    prize = prize,
                    game_type = game_type,
-                   creator = creator,
-                   is_finished = status,
-                   players_or_teams = players_or_teams)
+                   creator = creator_name,
+                   is_finished = is_finished,
+                   players_or_teams = pt_list)
+
+
