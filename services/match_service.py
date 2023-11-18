@@ -110,11 +110,6 @@ def play_matches(before_date):
 
 
 
-def get_creator_full_name(table: str, title: str):
-    creator_name = read_query(f'SELECT creator FROM {table} WHERE title = ?', (title, ))
-    return creator_name if creator_name else None
-
-
 def assign_player_to_match(match: Match, player: Player, team: int):
 # insert into matches
     update_query(f'UPDATE matches SET player_{team} = ? WHERE id = ?',

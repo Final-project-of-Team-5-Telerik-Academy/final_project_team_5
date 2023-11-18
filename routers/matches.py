@@ -47,7 +47,7 @@ def assign_player_to_match(token: str, match_title: str, player_name: str, team:
     user = get_user_or_raise_401(token)
 
 # check admin or creator
-    creator_name = match_service.get_creator_full_name(table, match_title)
+    creator_name = shared_service.get_creator_full_name(table, match_title)
     if not (user.full_name == creator_name or User.is_admin(user)):
         return JSONResponse(status_code=403, content='Only Admin and creator can assign players to match')
 
@@ -85,7 +85,7 @@ def change_player_team_in_match(token: str, match_title: str, player_name: str, 
     user = get_user_or_raise_401(token)
 
 # check admin or creator
-    creator_name = match_service.get_creator_full_name(current_table, match_title)
+    creator_name = shared_service.get_creator_full_name(current_table, match_title)
     if not (user.full_name == creator_name or User.is_admin(user)):
         return JSONResponse(status_code=403, content='Only Admin and creator can assign players to match')
 
@@ -139,7 +139,7 @@ def update_match_title(token, current_title: str, new_title: str):
     user = get_user_or_raise_401(token)
 
 # check admin or creator
-    creator_name = match_service.get_creator_full_name(current_table, current_title)
+    creator_name = shared_service.get_creator_full_name(current_table, current_title)
     if not (user.full_name == creator_name or User.is_admin(user)):
         return JSONResponse(status_code=403, content='Only Admin and creator can assign players to match')
 
@@ -149,6 +149,7 @@ def update_match_title(token, current_title: str, new_title: str):
 
 
 
+"UPDATE MATCH DATE"
 @matches_router.put('/update/{date}')
 def update_match_date(token, current_title: str, new_date: str):
     current_table = 'matches'
@@ -159,7 +160,7 @@ def update_match_date(token, current_title: str, new_date: str):
     user = get_user_or_raise_401(token)
 
 # check admin or creator
-    creator_name = match_service.get_creator_full_name(current_table, current_title)
+    creator_name = shared_service.get_creator_full_name(current_table, current_title)
     if not (user.full_name == creator_name or User.is_admin(user)):
         return JSONResponse(status_code=403, content='Only Admin and creator can assign players to match')
 
@@ -183,7 +184,7 @@ def update_match_date(token, current_title: str, new_form: str):
     user = get_user_or_raise_401(token)
 
 # check admin or creator
-    creator_name = match_service.get_creator_full_name(current_table, current_title)
+    creator_name = shared_service.get_creator_full_name(current_table, current_title)
     if not (user.full_name == creator_name or User.is_admin(user)):
         return JSONResponse(status_code=403, content='Only Admin and creator can assign players to match')
 

@@ -103,3 +103,44 @@ def delete_request(id: int):
     insert_query('''DELETE FROM admin_requests WHERE id = ?''',
                  (id,))
     
+    generated_id = insert_query(
+        'INSERT INTO players(full_name, country, sport_club, audience_vote, points, titles, wins, losses, money_prize, is_injured, is_active, statistics_matches_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+        (full_name, country, sport_club, audience_vote, points, titles, wins, losses, money_prize, is_injured, is_active, statistics_matches_id)  
+    )
+
+    return Player(
+        id=generated_id,
+        full_name=full_name,
+        country=country,
+        sport_club=sport_club,
+        audience_vote=audience_vote,
+        points=points,
+        titles=titles,
+        wins=wins,
+        losses=losses,
+        money_prize=money_prize,
+        is_injured=is_injured,
+        is_active=is_active,
+        statistics_matches_id=statistics_matches_id
+    )
+
+
+def find_all_players() -> Player | None:
+    ''' Search in the database and creates a list of all players. 
+    Returns:
+        - a list of all players(id, full_name, country, sport_club, audience_vote, points, titles, wins, losses, money_prize, is_injured, is_active, statistics_matches_id)
+    '''
+
+    data = read_query('SELECT id, full_name, country, sport_club, audience_vote, points, titles, wins, losses, money_prize, is_injured, is_active, statistics_matches_id FROM players')
+
+    result = (Player.from_query_result(*row) for row in data)
+
+    return result
+
+
+
+def get_creator_full_name(table: str, title: str):
+    # get creator full name from tables: Matches and Tournaments
+    creator_name = read_query(f'SELECT creator FROM {table} WHERE title = ?', (title, ))
+    return creator_name if creator_name else None
+
