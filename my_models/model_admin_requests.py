@@ -9,7 +9,7 @@ class TypeOfRequests:
 class AdminRequests(BaseModel):
     id: int | None = None
     type_of_request: str
-    players_id: int
+    players_id: int | None = None
     users_id: int
     status: str
 
