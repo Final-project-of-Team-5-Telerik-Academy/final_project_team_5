@@ -99,10 +99,6 @@ def my_user_information(x_token: str = Header(default=None)):
         return JSONResponse(status_code=401, content='You must be logged in to view your personal information.')
     
     user = get_user_or_raise_401(x_token)
-
-    # За ендпойнт: info/{id}
-    # if not utils_service.id_exists(id, 'users'):
-    #     raise JSONResponse(status_code=404, detail=f'User with id {id} does not exist.')
     
     return User(id=user.id, full_name=user.full_name, email=user.email, password='******', gender=user.gender, role=user.role, players_id=user.players_id)
 
@@ -134,76 +130,49 @@ def delete_own_account(x_token: str = Header(default=None)):
     
     return {'Your account has been deleted.'}
 
-
-@users_router.get('/info/players', description= 'Show all players:')
-def find_all_players(x_token: str = Header(default=None, description='Your identification token:')):
     
-    if x_token is None:
-        return JSONResponse(status_code=401, content='You must be logged in to view the list of players.')
-    
-    user = get_user_or_raise_401(x_token)
-
-    if User.is_spectator(user):
-        list_of_players = shared_service.find_all_players()
-    elif User.is_player(user):
-        list_of_players = shared_service.find_all_players()
-    elif User.is_director(user):
-        list_of_players = shared_service.find_all_players() 
-    elif User.is_admin(user):
-        list_of_players = shared_service.find_all_players()
-    else: 
-        return JSONResponse(status_code=401, content='Unrecognized credentials.')
-
-    return list_of_players
-
-
-@users_router.get('/info/players/id', description='Find player:')
-def find_player_by_id(id:int = Query(..., description='Enter id of the player:'), x_token: str = Header(default=None)):
-    
-    if x_token is None:
-        return JSONResponse(status_code=401, content='You must be logged in to see the players information.')
-    
-    user = get_user_or_raise_401(x_token)
-
-    if not shared_service.id_exists(id, 'players'):
-            return JSONResponse(status_code=404, content=f'Player with id: {id} does not exist.')
-    if User.is_spectator(user):
-        player = get_player_by_id(id)
-    elif User.is_player(user):
-        player = get_player_by_id(id)
-    elif User.is_director(user):
-        player = get_player_by_id(id) 
-    elif User.is_admin(user):
-        player = get_player_by_id(id)
-    else: 
-        return JSONResponse(status_code=401, content='Unrecognized credentials.')
-    return player
-
-    
-@users_router.post('/requests', description="Please fill the form to sent a connection/promotion request:")
-def requests(type_of_request: str = Query(default=None, description="Choose between 'connection' or 'promotion':"),
+@users_router.post('/requests/create', description="Please fill the form to send a connection/promotion request:")
+def create_request(type_of_request: str = Query(default=None, description="Choose between 'connection' or 'promotion':"),
              players_id: int = Query(default=None, description="Enter ID of the player's account:"),
              x_token: str = Header(default=None)):
+    ''' Used for creating and sending a request for connection or promotion.
+
+    Args:
+        - type_of_request: str(Query)
+        - players_id: int(Query)
+        - JWT token(Header)
     
+    Returns:
+        - Created request
+    '''
+
     if x_token == None:
-        return JSONResponse(status_code=401, content='You must be logged in to send a friendly match request.')    
+        return JSONResponse(status_code=401, content='You must be logged in to send a connection/promotion request.')    
     
     user = get_user_or_raise_401(x_token)
     users_id = user.id
 
-    if AdminRequests.is_connected(type_of_request):
+    if type_of_request == 'connection':
         if User.is_spectator(user):
+            if players_id == None:
+                return JSONResponse(status_code=400, content="You must enter id of a player.")
             if user.players_id != None:
-                return JSONResponse(status_code=400, content="You are already connected to a player name #TODO")
+                return JSONResponse(status_code=400, content="You are already connected to a player name.")
+            if not shared_service.id_exists(players_id, 'players'):
+                return JSONResponse(status_code=404, content=f'Player with id: {players_id} does not exist.')
+            
+            player = shared_service.data_for_model(players_id)
+            if player.is_connected == 1:
+                return JSONResponse(status_code=404, content=f'Player with id: {players_id} is already connected to another user.')
             
             return user_service.send_connection_request(type_of_request, players_id, users_id)
         else:
             return JSONResponse(status_code=401, content="You must be a spectator to be able to connect to your player's account.")
     
-    elif AdminRequests.is_promoted(type_of_request):
+    elif type_of_request == 'promotion' and players_id == None:
         if User.is_player(user):
             return user_service.send_promotion_request(type_of_request, users_id)
-        return JSONResponse(status_code=401, content="You must be with a player role to ask for promotion!")
+        return JSONResponse(status_code=401, content=f"Your user account is with '{user.role}'! Your role must be 'player' to be able to request of promotion.")
     else:
         return JSONResponse(status_code=400, content="Unrecognized type of request!")
 
@@ -237,3 +206,39 @@ def all_match_requests(option: str = Query(default=None, description="Choose bet
     elif option == 'received':
         return user_service.find_all_received_friendly_match_requests(user.id)
     
+
+@users_router.delete('/requests/delete')
+def delete_request(id: int = Query(..., description='Enter ID of the request you want to delete:'), 
+                x_token: str = Header(default=None)
+                ):
+    ''' Used for deleting an already created request for connection or promotion if the status is 'pending'.
+
+    Args:
+        - requests.id: int(URL link)
+        - JWT token
+    
+    Returns:
+        - Deleted request
+    '''
+
+    if x_token == None:
+        return JSONResponse(status_code=401, content='You must be logged in delete your request.')    
+    
+    user = get_user_or_raise_401(x_token)
+
+    if not shared_service.id_exists(id, 'admin_requests'):
+        return JSONResponse(status_code=404, content=f'Request with id: {id} does not exist.')
+    
+    request = (shared_service.id_exists_requests(id).status)
+
+    if request == 'pending':
+        if User.is_spectator(user):
+            shared_service.delete_request(id)
+        elif User.is_player(user): 
+            shared_service.delete_request(id)
+        else:
+            return JSONResponse(status_code=404, content='No requests found.')
+    else:
+        return JSONResponse(status_code=400, content="You are not allowed to delete a request if it's status is different than 'pending'!")
+        
+    return {'Your request has been deleted.'}

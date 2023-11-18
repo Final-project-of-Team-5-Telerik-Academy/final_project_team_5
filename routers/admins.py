@@ -52,7 +52,7 @@ def user_info(id: int = Query(default=None, description="Enter ID of user:"),
 
 @admins_router.put('/edit')
 def edit_users_role(id: int = Query(..., description='Enter ID of user:'),
-                    new_role: str = Query(default=None, description='Enter new role of user:'),
+                    new_role: str = Query(default=None, description="Choose between 'spectator' and 'director':"),
                     players_id: int = Query(default=None, description='Enter ID of player:'),
                     x_token: str = Header(default=None)
                     ):
@@ -94,7 +94,6 @@ def edit_users_role(id: int = Query(..., description='Enter ID of user:'),
         if not shared_service.id_exists(players_id, 'players'):
             return JSONResponse(status_code=404, content=f'Player with id: {players_id} does not exist.')
         
-        # !!! да се тества след като се добави Player модел !!!
         if shared_service.players_id_exists(players_id, 'users'):
             return JSONResponse(status_code=400, content=f'Player with id: {players_id} is already connected to a user.')
         
@@ -103,7 +102,7 @@ def edit_users_role(id: int = Query(..., description='Enter ID of user:'),
         admin_service.edit_user_players_id(old_user, players_id)
         admin_service.edit_user_role(old_user, new_role)
         
-        return f"User's account is linked with players_id: {players_id} and user's role is updated to: {new_role}."
+        return f"User's account is linked with players_id: {players_id} and user's role is updated to: '{new_role}'."
 
     # Change role of user: promotion and demotion
     elif new_role != None and players_id == None:
@@ -112,13 +111,16 @@ def edit_users_role(id: int = Query(..., description='Enter ID of user:'),
                 return JSONResponse(status_code=400, content=f"User's role is already {new_role} and the user is connected to player's account.")
             return JSONResponse(status_code=400, content="You can only change the role to 'player' when connecting user's account to player's account.")
         
+        if new_role == 'spectator' and user.role == 'player':
+            return JSONResponse(status_code=400, content="User's role is 'player' and cannot be switched to 'spectator' without disconnecting from his player's account.")
+        
         if new_role != 'spectator' and new_role != 'director':
             return JSONResponse(status_code=400, content="You can only switch the role to 'spectator' or 'director'.")
         
-        # demote from 'director' to 'spectator'
-        elif new_role == 'spectator':
+        # demote from 'director' to 'player'
+        elif new_role == 'player':
             if User.is_spectator(old_user):
-                return JSONResponse(status_code=400, content="User's role is already 'spectator'.")
+                return JSONResponse(status_code=400, content="User's role is already 'player'.")
             
             # !!! да се тества след като се добави Player модел !!!
             # disconnect user's account from player's acount and demote to 'spectator' role

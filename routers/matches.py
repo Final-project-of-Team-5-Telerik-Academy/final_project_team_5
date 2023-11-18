@@ -7,6 +7,7 @@ from my_models.model_user import User
 from datetime import datetime, date
 from my_models.model_player import Player
 from pydantic import constr, conint
+from services import player_service
 
 
 matches_router = APIRouter(prefix='/matches', tags=['Matches'])
@@ -57,9 +58,9 @@ def assign_player_to_match(token: str, match_title: str, player_name: str, team:
 
 # get or create player
     country = 'add country'
-    sport_club = 'add sport club'
+    sports_club = 'add sport club'
     if not shared_service.full_name_exists(player_name, table):
-        player_to_assign = shared_service.create_player(player_name, country, sport_club)
+        player_to_assign = player_service.create_player(player_name, country, sports_club)
         return {"Warning": f'''Player '{player_to_assign}' dose not exist in the system.
                             We've created profile for him, but it is uncompleted. You must finish the player's profile!'''}
     else:
