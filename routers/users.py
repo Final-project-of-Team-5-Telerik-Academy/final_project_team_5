@@ -5,9 +5,8 @@ from authentication.authenticator import get_user_or_raise_401, create_token
 from my_models.model_user import User
 from fastapi.responses import JSONResponse
 from email_validator import validate_email
-from my_models.model_player import Player
 from services.player_service import get_player_by_id
-from my_models.model_admin_requests import AdminRequests
+
 
 
 users_router = APIRouter(prefix='/users', tags={'Users'})
@@ -160,8 +159,10 @@ def create_request(type_of_request: str = Query(default=None, description="Choos
                 return JSONResponse(status_code=400, content="You are already connected to a player name.")
             if not shared_service.id_exists(players_id, 'players'):
                 return JSONResponse(status_code=404, content=f'Player with id: {players_id} does not exist.')
+            if shared_service.user_connection_request_exists(users_id):
+                return JSONResponse(status_code=400, content='You already sent that kind of request, please wait for your response.')
             
-            player = shared_service.data_for_model(players_id)
+            player = get_player_by_id(players_id)
             if player.is_connected == 1:
                 return JSONResponse(status_code=404, content=f'Player with id: {players_id} is already connected to another user.')
             
@@ -170,42 +171,14 @@ def create_request(type_of_request: str = Query(default=None, description="Choos
             return JSONResponse(status_code=401, content="You must be a spectator to be able to connect to your player's account.")
     
     elif type_of_request == 'promotion' and players_id == None:
+        if shared_service.user_promotion_request_exists(users_id):
+                return JSONResponse(status_code=400, content='You already sent that kind of request, please wait for your response.')
         if User.is_player(user):
             return user_service.send_promotion_request(type_of_request, users_id)
         return JSONResponse(status_code=401, content=f"Your user account is with '{user.role}'! Your role must be 'player' to be able to request of promotion.")
     else:
         return JSONResponse(status_code=400, content="Unrecognized type of request!")
-
-
-@users_router.get('/matchrequest', description='All friendly match requests.')
-def all_match_requests(option: str = Query(default=None, description="Choose between 'sent' and 'received':"),
-                                x_token: str = Header(default=None)):
-    ''' Used to to get all sent and received friendly match requests.
-    
-    Args:
-        - JWT token(Header)
-    
-    Returns:
-        - list of all friendly match requests
-    '''
-
-    if x_token == None:
-        return JSONResponse(status_code=401, content='You must be logged in to be able to see your sent and received friendly match requests.')
-    
-    user = get_user_or_raise_401(x_token)
-    
-    if not User.is_player(user):
-        return JSONResponse(status_code=401, content="Only user's with connected player's accounts and 'player' role are allowed see their sent and received friendly match requests.")
-    
-    if option != 'sent' and option != 'received':
-        return JSONResponse(status_code=400, content="Unrecognized command.")
-    
-    if option == 'sent':
-        return user_service.find_all_sent_friendly_match_requests(user.id)
-    
-    elif option == 'received':
-        return user_service.find_all_received_friendly_match_requests(user.id)
-    
+        
 
 @users_router.delete('/requests/delete')
 def delete_request(id: int = Query(..., description='Enter ID of the request you want to delete:'), 
@@ -242,3 +215,49 @@ def delete_request(id: int = Query(..., description='Enter ID of the request you
         return JSONResponse(status_code=400, content="You are not allowed to delete a request if it's status is different than 'pending'!")
         
     return {'Your request has been deleted.'}
+
+
+
+@users_router.get('/requests', description='View all your requests:')
+def all_user_requests(x_token: str = Header(default=None)):
+    ''' Used to to get all sent and received user requests.
+    
+    Args:
+        - JWT token(Header)
+    
+    Returns:
+        - list of all user's requests
+    '''
+
+    if x_token == None:
+        return JSONResponse(status_code=400, content='You must be logged in to see your requests!')
+    
+    user = get_user_or_raise_401(x_token)
+    user_id = user.id
+       
+    return user_service.find_all_user_requests(user_id)
+
+
+@users_router.get('/requests/id', description='View specific request:')
+def find_request_by_id(request_id: int = Query(..., description='Enter ID of the request you want to view:'),
+                      x_token: str = Header(default=None)):
+    ''' Used to to get all sent and received user requests.
+    
+    Args:
+        - JWT token(Header)
+    
+    Returns:
+        - list of all user's requests
+    '''
+
+    if x_token == None:
+        return JSONResponse(status_code=400, content='You must be logged in to see your requests!')
+    
+    user = get_user_or_raise_401(x_token)
+       
+    result = user_service.find_request_by_id(request_id, user.id)
+
+    if result == None:
+        return JSONResponse(status_code=404, content='Request not found!')
+    
+    return result

@@ -31,6 +31,43 @@ def id_exists_requests(id: int):
     return result
 
 
+def user_connection_request_exists(user_id: int):
+    ''' Used to check if the id exists in admin_requests in the database.
+    
+    Returns:
+        - Status from admin_requests if the user_id exists, None otherwise.
+    '''
+    status = 'pending'
+    type_of_request = 'connection'
+    
+    result = read_query(
+        'SELECT id, type_of_request, players_id, users_id, status FROM admin_requests WHERE users_id = ? and status = ? and type_of_request = ?',
+        (user_id, status, type_of_request)
+    )
+
+    result = next((AdminRequests.from_query_result(*row, ) for row in result), None)
+
+    return result
+        
+def user_promotion_request_exists(user_id: int):
+    ''' Used to check if the id exists in admin_requests in the database.
+    
+    Returns:
+        - Status from admin_requests if the user_id exists, None otherwise.
+    '''
+    status = 'pending'
+    type_of_request = 'promotion'
+    
+    result = read_query(
+        'SELECT id, type_of_request, players_id, users_id, status FROM admin_requests WHERE users_id = ? and status = ? and type_of_request = ?',
+        (user_id, status, type_of_request)
+    )
+
+    result = next((AdminRequests.from_query_result(*row, ) for row in result), None)
+
+    return result
+    
+
 def players_id_exists(players_id: int, table_name: str) -> bool:
     ''' Used to check if the players_id is already connected to another user in the database.'''
 
@@ -65,3 +102,4 @@ def delete_request(id: int):
 
     insert_query('''DELETE FROM admin_requests WHERE id = ?''',
                  (id,))
+    
