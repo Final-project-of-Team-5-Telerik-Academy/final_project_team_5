@@ -1,17 +1,20 @@
 from pydantic import BaseModel
 
+
 class TypeOfRequests:
     CONNECTION = 'connection'
     PROMOTION = 'promotion'
 
+
 class AdminRequests(BaseModel):
-    id: int | None
-    type_of_request: str    
+    id: int | None = None
+    type_of_request: str
     players_id: int
     users_id: int
     status: str
 
-    def is_connected(self):
+
+    def is_connection(self):
         ''' Compares the request's type of the request.
         
         Returns:
@@ -21,7 +24,7 @@ class AdminRequests(BaseModel):
         return self.type_of_request == TypeOfRequests.CONNECTION
     
     
-    def is_promoted(self):
+    def is_promotion(self):
         ''' Compares the request's type of the request.
         
         Returns:
