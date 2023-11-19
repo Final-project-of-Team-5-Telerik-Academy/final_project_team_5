@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query, Header
+from fastapi import APIRouter, Query, Header, Form
 from fastapi.responses import JSONResponse
 from services import match_service, date_service
 from authentication.authenticator import get_user_or_raise_401, get_user_from_token
@@ -12,12 +12,13 @@ from services import player_service
 
 matches_router = APIRouter(prefix='/matches', tags=['Matches'])
 
+
+"CREATE A MATCH"
 @matches_router.post('/', description='You can create new match')
 def create_match(token: str = Header(),
-                 date: str = Query(description='write date in format yyyy-mm-dd'),
-                 title: str = Query(),
-                 match_format: str = Query(description='time limit or score limit'),
-                 prize: int = 0):
+                 format: str = Form(..., description="Select an option",
+                                    example='time limit', enum=['time limit', 'score limit']),
+                 date: str = Query(description='write date in format yyyy-mm-dd')):
 
 # check if authenticated
     user = get_user_or_raise_401(token)
@@ -34,7 +35,7 @@ def create_match(token: str = Header(),
 # create match
     date = datetime.strptime(date, "%Y-%m-%d").date()
     creator = user.full_name
-    match = match_service.create_match(title = title, date = date, match_format = match_format, prize = prize, creator=creator)
+    match = match_service.create_match(title = title, date = date, match_format = format, prize = prize, creator=creator)
     return match
 
 

@@ -3,29 +3,32 @@ from datetime import date
 from my_models.model_user import User
 
 class Match(BaseModel):
-    # FOR CREATING MATCH
     id: int | None
-    title: str = None
+    format: constr(pattern='^time limit|score limit$')
+    participant_1: str
+    participant_2: str
     date: date
-    player_1: str | list = []
-    player_2: str | list = []
-    match_format: constr(pattern='^time limit|score limit$')
-    prize: conint(gt=-1) = 0
-    tournament_name: str = None
-    creator: str = None
-    played: bool = False
     winner: str = None
+    tournament_name: str = None
+
 
     @classmethod
-    def from_query_result(cls, id, date, player_1, player_2, title, format, prize, is_part_of_a_tournament,played, winner ):
-        return cls(id = id,
-                   date = date,
-                   player_1 = player_1,
-                   player_2 = player_2,
-                   title = title,
-                   format = format,
-                   prize = prize,
-                   is_part_of_a_tournament = is_part_of_a_tournament,
-                   played=played,
-                   winner=winner)
+    def from_query_result(cls, id, format, participant_1, participant_2,
+                          date, winner, tournament_name):
+        return cls( id = id,
+                    format = format,
+                    participant_1 = participant_1,
+                    participant_2 = participant_2,
+                    date = date,
+                    winner = winner,
+                    tournament_name = tournament_name)
+
+
+
+
+
+
+
+
+
 

@@ -43,9 +43,9 @@ def create_tournament(token: str = Header(),
 
 
 
-"ADD TEAM/PLAYER TO TOURNAMENT"
+"ADD PARTICIPANTS TO TOURNAMENT"
 @tournaments_router.put('/add/{players}')
-def add_team_or_player_to_tournament(t_title: str, pt_name: str, token):
+def add_participant_to_tournament(t_title: str, participant: str, token):
     tournament = tournament_service.get_tournament_by_title(t_title)
 
 # check if authenticated
@@ -68,23 +68,28 @@ def add_team_or_player_to_tournament(t_title: str, pt_name: str, token):
     if tournament.is_finished:
         return f'the tournament {tournament.title} is finished.'
 
-# check if player exists
-    table = 'players'
+# if game type is One on One
     if game_format == 'one on one':
-        if not shared_service.full_name_exists(pt_name, table):
-            return JSONResponse(status_code=404, content=f'Player {pt_name} not found.')
 
-        player = player_service.get_player_by_full_name(pt_name)
-        result = tournament_service.add_player_or_team(player, tournament)
+    # check if player exists
+        player = player_service.get_player_by_full_name(participant)
+        if player is None:
+            return JSONResponse(status_code=404, content=f'Player {participant} not found.')
+
+    # check if player is already added
+        if tournament_service.is_player_in_tournament(player.id, tournament.id):
+            return f'{player.full_name} is already in {tournament.title}'
+
+        # player = player_service.get_player_by_full_name(participant)
+        result = tournament_service.add_participant(player, tournament)
         return result
 
 
-# check if team exists
-    elif game_format == 'team_game':
-        if not team_service.team_exists(pt_name):
-            return JSONResponse(status_code=404, content=f'Team {pt_name} not found.')
-
-
+# if game type is Team game     TODO:
+#     elif game_format == 'team game':
+#     # check if team exists
+#         if not team_service.team_exists(participant):
+#             return JSONResponse(status_code=404, content=f'Team {participant} not found.')
 
 
 

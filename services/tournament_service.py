@@ -21,7 +21,7 @@ def create_tournament(title: str, format: str, date: date, prize: int, game_type
                         game_type = game_type,
                         creator = creator.full_name,
                         is_finished = False,
-                        players_or_teams = 'Add players/teams to the tournament')
+                        participant = 'Add players/teams to the tournament')
     return result
 
 
@@ -55,32 +55,53 @@ def get_game_format(t_title):
     result = game_format[0][0]
     return result
 
-def add_player_or_team(player: Player, tournament: Tournament):
-    tournament.players_or_teams.append(player)
-    insert_query('''INSERT INTO tournaments () 
-                    SET''')
+def add_participant(participant: Player, tournament: Tournament):   # TODO: add | Team
+# add participant to the tournament instance
+    tournament.participant.append(participant.id)
 
-    result = {
-        'id': f'{tournament.id}',
-        'title': f'{tournament.title}',
-        'format': f'{tournament.format}',
-        'date': f'{tournament.date}',
-        'prize': f'{tournament.prize}',
-        'game type': f'{tournament.game_type}',
-        'creator': f'{tournament.creator}',
-        'is finished': f'{tournament.is_finished}',
-        'players or teams': f'{tournament.players_or_teams}'}
+# add participant to tournaments_players table
+    insert_query('''INSERT INTO tournaments_players (tournaments_id, players_id) 
+                VALUES (?, ?)''', (tournament.id, participant.id))
 
-    return result
+    return f'{participant.full_name} joined the {tournament.title}'
 
 
 
+def is_player_in_tournament(player_id: int, tournament_id: int):
+    row_result = read_query('SELECT players_id FROM tournaments_players WHERE tournaments_id = ?',
+                      (tournament_id, ))
+
+    data = [el[0] for el in row_result]
+    for el in data:
+        if el == player_id:
+            return True
+    return False
+
+
+
+# def view_tournament_participants(title: str):
+#     # get all players for this tournament
+#     all_players_id = read_query('''SELECT players_id FROM tournaments_players
+#                                     WHERE tournaments_id = ?''', (tournament.id,))
 
 
 
 
 
 
+
+    # result = {
+    #     'id': f'{tournament.id}',
+    #     'title': f'{tournament.title}',
+    #     'format': f'{tournament.format}',
+    #     'date': f'{tournament.date}',
+    #     'prize': f'{tournament.prize}',
+    #     'game type': f'{tournament.game_type}',
+    #     'creator': f'{tournament.creator}',
+    #     'is finished': f'{tournament.is_finished}',
+    #     'players or teams': f'{tournament.participant}'}
+    #
+    # return result
 
 
 

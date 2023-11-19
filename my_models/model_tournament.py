@@ -12,7 +12,7 @@ class Tournament(BaseModel):
     game_type: str
     creator: str | int
     is_finished: bool
-    players_or_teams: list | str = None
+    participant: list | str = None
 
 
     @classmethod
@@ -29,6 +29,6 @@ class Tournament(BaseModel):
                    game_type = game_type,
                    creator = creator_name,
                    is_finished = is_finished,
-                   players_or_teams = pt_list)
+                   participant = pt_list)
 
 
