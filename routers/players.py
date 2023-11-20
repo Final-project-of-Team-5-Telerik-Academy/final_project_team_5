@@ -6,10 +6,10 @@ from fastapi.responses import JSONResponse
 from services import player_service
 
 
-shared_router = APIRouter(prefix='/shared_users', tags={'Shared Users'})
+players_router = APIRouter(prefix='/players', tags={'Players'})
 
 
-@shared_router.post('/create_player', description='Create a new player')
+@players_router.post('/', description='Create a new player:')
 def create_player(full_name: str = Query(..., description='Enter full name of player:'),
                   country: str = Query(..., description='Enter country of player:'),
                   sports_club: str = Query(..., description='Enter sport club of player:'),
@@ -41,7 +41,7 @@ def create_player(full_name: str = Query(..., description='Enter full name of pl
     return created_player
 
 
-@shared_router.get('/info/players', description= 'Show all players:')
+@players_router.get('/', description= 'Show all players:')
 def find_all_players(x_token: str = Header(default=None, description='Your identification token:')):
     
     if x_token is None:
@@ -63,7 +63,7 @@ def find_all_players(x_token: str = Header(default=None, description='Your ident
     return list_of_players
 
 
-@shared_router.get('/info/players/id', description='Find player:')
+@players_router.get('/id', description='Find player:')
 def find_player_by_id(id:int = Query(..., description='Enter id of the player:'), x_token: str = Header(default=None)):
     
     if x_token is None:

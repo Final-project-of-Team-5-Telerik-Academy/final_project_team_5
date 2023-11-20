@@ -37,6 +37,7 @@ def user_connection_request_exists(user_id: int):
     Returns:
         - Status from admin_requests if the user_id exists, None otherwise.
     '''
+
     status = 'pending'
     type_of_request = 'connection'
 
@@ -48,7 +49,7 @@ def user_connection_request_exists(user_id: int):
     result = next((AdminRequests.from_query_result(*row, ) for row in result), None)
 
     return result
-
+        
 
 def user_promotion_request_exists(user_id: int):
     ''' Used to check if the id exists in admin_requests in the database.
@@ -56,6 +57,7 @@ def user_promotion_request_exists(user_id: int):
     Returns:
         - Status from admin_requests if the user_id exists, None otherwise.
     '''
+
     status = 'pending'
     type_of_request = 'promotion'
 
