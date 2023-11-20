@@ -14,6 +14,9 @@ app.include_router(admins_router)
 app.include_router(matches_router)
 app.include_router(date_router)
 app.include_router(requests_router)
+app.include_router(players_router)
+app.include_router(tournaments_router)
+app.include_router(statistics_router)
 
 
 if __name__ == "__main__":
