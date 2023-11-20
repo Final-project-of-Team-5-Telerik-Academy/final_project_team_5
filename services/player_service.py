@@ -53,7 +53,7 @@ def create_player(full_name: str, country: str, sports_club: str) -> Player:
     if full_name_exists(full_name, 'players'):
         return JSONResponse(status_code=400, content=f'The full name: {full_name} is already taken!')
 
-    is_active = 0
+    is_active = 1
     is_connected = 0
     statistics_matches_id = None
     

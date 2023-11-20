@@ -134,3 +134,8 @@ def send_promotion_request(type_of_request:str, users_id:int) -> AdminRequests |
     #             (is_active, players_id))
     return AdminRequests(id=generated_id, type_of_request=type_of_request, users_id=users_id, status=status)
 
+
+def get_user_full_name_by_id(user_id: str):
+    user_name = read_query('SELECT full_name FROM users WHERE id = ?', (user_id,))
+    return user_name[0][0]
+
