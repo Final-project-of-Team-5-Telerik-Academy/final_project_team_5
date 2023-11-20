@@ -46,12 +46,15 @@ def get_match_by_id(id: int):
 
 
 
-def create_match(format: str, game_type: str, participant_1: str, participant_2: str, date):
+def create_match(format: str, game_type: str, participant_1: str, participant_2: str,
+                 date, tournament_name: str | None = None):
+
     generated_match = insert_query('''INSERT INTO matches (format, game_type, participant_1, participant_2, date) 
                                     VALUES (?, ?, ?, ?, ?)''',
                                    (format, game_type, participant_1, participant_2, date))
 
     match_id = generated_match
+    t_name = tournament_name if tournament_name else 'not part of a tournament'
     result = Match.from_query_result(id=match_id,
                    format = format,
                    game_type = game_type,
@@ -59,7 +62,7 @@ def create_match(format: str, game_type: str, participant_1: str, participant_2:
                    participant_2 = participant_2,
                    date = date,
                    winner='Тhe match has not been played yet',
-                   tournament_name = 'add tournament name if needed')
+                   tournament_name = t_name)
     return result
 
 
