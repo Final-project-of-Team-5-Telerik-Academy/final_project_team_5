@@ -69,7 +69,7 @@ def find_all_user_requests(id: int) -> AdminRequests | None:
     return (AdminRequests.from_query_result(*row) for row in data)
     
 
-def find_request_by_id(id: int, users_id: int) -> AdminRequests | None:
+def find_request_by_id_and_users_id(id: int, users_id: int) -> AdminRequests | None:
     ''' Search in the database and returns user's requests by ID.
     
     Returns:
