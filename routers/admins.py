@@ -1,14 +1,17 @@
 from fastapi import APIRouter, Header, Query
 from services import shared_service
 from services import admin_service
+from services import player_service
+from services import user_service
 from authentication.authenticator import get_user_or_raise_401
 from my_models.model_user import User
 from fastapi.responses import JSONResponse
 
+
 admins_router = APIRouter(prefix='/admins', tags={'Admins'})
 
 
-@admins_router.get('/info/users')
+@admins_router.get('/users', description='View users:')
 def user_info(id: int = Query(default=None, description="Enter ID of user:"), 
               role: str = Query(default=None, description="Enter role of user: spectator/player/director/admin"),
               x_token: str = Header(default=None)
@@ -50,9 +53,10 @@ def user_info(id: int = Query(default=None, description="Enter ID of user:"),
     return admin_service.find_all_users()
 
 
-@admins_router.put('/edit')
-def edit_users_role(id: int = Query(..., description='Enter ID of user:'),
-                    new_role: str = Query(default=None, description="Choose between 'spectator' and 'director':"),
+@admins_router.put('/users', description="Edit user's account:")
+def edit_users(id: int = Query(..., description='Enter ID of user:'),
+                    new_role: str = Query(default=None, description="Choose between 'spectator', 'player' or 'director':"),
+                    command: str = Query(default=None, description="Choose between 'promotion', 'demotion' or 'connection':"),
                     players_id: int = Query(default=None, description='Enter ID of player:'),
                     x_token: str = Header(default=None)
                     ):
@@ -83,73 +87,105 @@ def edit_users_role(id: int = Query(..., description='Enter ID of user:'),
 
     # both are None:
     if new_role == None and players_id == None:
-        return JSONResponse(status_code=400, content="You must enter either a new_role or a players_id.")
+        return JSONResponse(status_code=400, content="You must enter either a new_role with a command or just a players_id.")
 
     # both are != None:
     elif new_role != None and players_id != None:
-        return JSONResponse(status_code=401, content="You are not allowed to change the role and to add players_id in the same time.")
+        return JSONResponse(status_code=401, content="You are not allowed to change the role and to add players_id at the same time.")
+    
+    # new_role != None and command is not correct:
+    elif new_role != None and command == 'connection':
+        return JSONResponse(status_code=401, content="To edit user's role you must choose between 'promotion' or 'demotion' command.")
+    
+    # players_id != None and command is not correct
+    elif players_id != None and new_role == None and (command == 'demotion' or command == 'promotion' ):
+        return JSONResponse(status_code=401, content="To connect user's account to his player's account you must enter 'connection' command.")
     
     # connect user's account with player's account:
-    elif new_role == None and players_id != None:
+    elif new_role == None and players_id != None and command == 'connection':
         if not shared_service.id_exists(players_id, 'players'):
             return JSONResponse(status_code=404, content=f'Player with id: {players_id} does not exist.')
         
         if shared_service.players_id_exists(players_id, 'users'):
             return JSONResponse(status_code=400, content=f'Player with id: {players_id} is already connected to a user.')
         
-        new_role = 'player'
+        if old_user.players_id == players_id:
+            return JSONResponse(status_code=400, content=f'You are already connected to player with id: {players_id}.')
         
         admin_service.edit_user_players_id(old_user, players_id)
+        
+        is_connected = 1
+        player_service.edit_is_connected_in_player(is_connected, players_id)
+        
+        new_role = 'player'
         admin_service.edit_user_role(old_user, new_role)
+        
+        if shared_service.user_connection_request_exists(old_user.id):
+            request_status = 'finished'
+            type_of_request = 'connection'
+            admin_service.edit_requests_connection_status(request_status, players_id, type_of_request, id)
+            return f"User's account is linked with players_id: {players_id}, user's role is updated to: '{new_role}' and the status of the request is updated to 'finished'."
         
         return f"User's account is linked with players_id: {players_id} and user's role is updated to: '{new_role}'."
 
     # Change role of user: promotion and demotion
-    elif new_role != None and players_id == None:
-        if new_role == 'player':
-            if User.is_player(user):
-                return JSONResponse(status_code=400, content=f"User's role is already {new_role} and the user is connected to player's account.")
-            return JSONResponse(status_code=400, content="You can only change the role to 'player' when connecting user's account to player's account.")
-        
-        if new_role == 'spectator' and user.role == 'player':
-            return JSONResponse(status_code=400, content="User's role is 'player' and cannot be switched to 'spectator' without disconnecting from his player's account.")
-        
-        if new_role != 'spectator' and new_role != 'director':
-            return JSONResponse(status_code=400, content="You can only switch the role to 'spectator' or 'director'.")
+    elif new_role != None and players_id == None and command != None:
         
         # demote from 'director' to 'player'
-        elif new_role == 'player':
-            if User.is_spectator(old_user):
-                return JSONResponse(status_code=400, content="User's role is already 'player'.")
-            
-            # !!! да се тества след като се добави Player модел !!!
-            # disconnect user's account from player's acount and demote to 'spectator' role
-            # elif User.is_player(old_user):
-            #     admin_service.edit_user_role(old_user, new_role)
-            #     admin_service.delete_players_id_from_user(id)
+        if new_role == 'player' and command == 'demotion':
+            if User.is_player(old_user):
+                return JSONResponse(status_code=400, content="User's role is already a 'player'.")
+            elif User.is_director(old_user):
+                admin_service.edit_user_role(old_user, new_role)
+                
+                is_active = 0
+                is_connected = 1
+                player_service.edit_is_active_in_player(is_active, old_user.full_name, is_connected)
 
-            #     return {f"User's role is demoted to {new_role} and user's account is disconnected from player's account."}
-            
-            admin_service.edit_user_role(old_user, new_role)
-            return {f"User's role is demoted from 'director' to '{new_role}'."}
-            
+                return {f"User's role is demoted to '{new_role}' and player's account is activated."}
+
+        # demote from 'director' to 'spectator'   
+        elif new_role == 'spectator' and command == 'demotion':
+            if User.is_spectator(old_user):
+                return JSONResponse(status_code=400, content="User's role is already a 'spectator'.")
+            elif User.is_director(old_user):
+                admin_service.edit_user_role(old_user, new_role)
+                
+                is_connected = 0
+                player_service.edit_is_connected_in_player(is_connected, old_user.players_id)
+
+                admin_service.delete_players_id_from_user(old_user.id)
+
+                return {f"User's role is demoted to '{new_role}' and player's account is disconnected from the user."}
         
-        # !!! да се добави първо викане на функция за пенсиониране на player и тогава да се откоментира !!!
         # promote from 'player' to 'director'
-        # elif new_role == 'director' and User.is_player(user.id):
-        #     admin_service.edit_user_role(old_user, new_role)
-        #     # да се добави викане на функция за пенсиониране на player!
-        #     return {f"User's role is promoted to {new_role} and linked player's account is retired."}
-        
-        # promote from 'spectator' to 'director'
-        elif new_role == 'director':
+        elif new_role == 'director' and command == 'promotion':
             if User.is_director(old_user):
                 return JSONResponse(status_code=400, content="User's role is already 'director'.")
-            admin_service.edit_user_role(old_user, new_role)
-            return {f"User's role is promoted to '{new_role}'."}
+            elif User.is_spectator(old_user):
+                return JSONResponse(status_code=400, content="User's role cannot be changed from 'spectator' to 'director'.")
+            elif User.is_player(old_user):
+                admin_service.edit_user_role(old_user, new_role)
+                
+                if shared_service.user_promotion_request_exists(old_user.id):
+                    request_status = 'finished'
+                    type_of_request = 'promotion'
+                    admin_service.edit_requests_promotion_status(request_status, type_of_request, id)
+                
+                is_active = 1
+                is_connected = 1
+                player_service.edit_is_active_in_player(is_active, old_user.full_name, is_connected)
+            
+                return {f"User's role is promoted to '{new_role}' and the connected player's account is retired."}
+            
+        else:
+            return JSONResponse(status_code=400, content="Unrecognized request.")
+            
+    else:
+        return JSONResponse(status_code=400, content="Unrecognized request.")
 
 
-@admins_router.delete('/delete')
+@admins_router.delete('/users', description="Delete user's account:")
 def delete_user(id: int = Query(..., description='Enter ID of the user you want to delete:'), 
                 x_token: str = Header(default=None)
                 ):

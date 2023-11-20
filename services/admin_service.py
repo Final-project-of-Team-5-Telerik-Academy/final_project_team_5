@@ -1,5 +1,6 @@
 from data.database import read_query, insert_query, update_query
 from my_models.model_user import User
+from my_models.model_admin_requests import AdminRequests
 
 
 _SEPARATOR = ';'
@@ -99,5 +100,46 @@ def delete_user(id: int):
 def delete_players_id_from_user(id: int):
     ''' Used for deleting the players_id from user in the database.'''
 
-    insert_query('''DELETE players_id FROM users WHERE id = ?''',
+    update_query('''UPDATE users SET players_id = NULL WHERE id = ?''',
                  (id,))
+
+
+def get_all_requests() -> AdminRequests | None:
+    ''' Used to take all requests in admin_requests in the database.
+    
+    Returns:
+        - list of requests from users
+    '''
+
+    data = read_query('SELECT id, type_of_request, players_id, users_id, status FROM admin_requests')
+    
+    return (AdminRequests.from_query_result(*row) for row in data)
+
+
+def get_requests_by_id(id: int):
+    ''' Used to find a specific request in admin_requests in the database.
+    
+    Args:
+        - id(int)
+    Returns:
+        - list of requests from users
+    '''
+
+    data = read_query('SELECT id, type_of_request, players_id, users_id, status FROM admin_requests WHERE id = ?',
+                      (id,))
+    
+    return (AdminRequests.from_query_result(*row) for row in data)
+
+
+def edit_requests_connection_status(request_status: str, players_id: int, type_of_request: str, id: int):
+    ''' Used by an admin for editing the status in admin_requests in the database.'''
+
+    update_query('''UPDATE admin_requests SET status = ? WHERE players_id = ? and type_of_request = ? and users_id = ?''',
+                (request_status, players_id, type_of_request, id))
+
+
+def edit_requests_promotion_status(request_status: str, type_of_request: str, id: int):
+    ''' Used by an admin for editing the status in admin_requests in the database.'''
+
+    update_query('''UPDATE admin_requests SET status = ? WHERE type_of_request = ? and users_id = ?''',
+                (request_status, type_of_request, id))

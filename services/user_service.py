@@ -69,7 +69,7 @@ def find_all_user_requests(id: int) -> AdminRequests | None:
     return (AdminRequests.from_query_result(*row) for row in data)
     
 
-def find_request_by_id(id: int, users_id: int) -> AdminRequests | None:
+def find_request_by_id_and_users_id(id: int, users_id: int) -> AdminRequests | None:
     ''' Search in the database and returns user's requests by ID.
     
     Returns:
@@ -133,4 +133,9 @@ def send_promotion_request(type_of_request:str, users_id:int) -> AdminRequests |
     # update_query('''UPDATE players SET is_active = ? WHERE id = ?''',
     #             (is_active, players_id))
     return AdminRequests(id=generated_id, type_of_request=type_of_request, users_id=users_id, status=status)
+
+
+def get_user_full_name_by_id(user_id: str):
+    user_name = read_query('SELECT full_name FROM users WHERE id = ?', (user_id,))
+    return user_name[0][0]
 
