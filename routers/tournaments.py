@@ -22,10 +22,8 @@ def create_tournament(token: str = Header(),
                       date: str = Query(description='write date in format yyyy-mm-dd'),
                       prize: int = Query(gt=-1)):
 
-# check if authenticated
+# check if authenticated and role
     creator = get_user_or_raise_401(token)
-
-# check role
     if not (User.is_director(creator) or User.is_admin(creator)):
         return JSONResponse(status_code=403, content='Only Admin and Director can create a match')
 
@@ -62,14 +60,14 @@ def add_participant_to_tournament(t_title: str, participant: str, token):
         return JSONResponse(status_code=404, content=f'The tournament {t_title} does not exist.')
 
 # get game format and tournament object
-    game_format = tournament_service.get_game_format(t_title)
+    game_type = tournament_service.get_game_type(t_title)
 
 # check if tournament is finished
     if tournament.is_finished:
         return f'the tournament {tournament.title} is finished.'
 
 # if game type is One on One
-    if game_format == 'one on one':
+    if game_type == 'one on one':
 
     # check if player exists
         player = player_service.get_player_by_full_name(participant)
@@ -86,7 +84,7 @@ def add_participant_to_tournament(t_title: str, participant: str, token):
 
 
 # if game type is Team game     TODO:
-#     elif game_format == 'team game':
+#     elif game_type == 'team game':
 #     # check if team exists
 #         if not team_service.team_exists(participant):
 #             return JSONResponse(status_code=404, content=f'Team {participant} not found.')

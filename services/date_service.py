@@ -21,3 +21,6 @@ def date_is_in_future(new_date):
     date = datetime.strptime(new_date, "%Y-%m-%d").date()
 
     return True if date >= today else False
+
+
+

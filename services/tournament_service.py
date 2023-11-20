@@ -50,9 +50,9 @@ def get_tournament_by_title(title: str):
 
 
 
-def get_game_format(t_title):
-    game_format = read_query(f'SELECT game_type FROM tournaments WHERE title = ?', (t_title,))
-    result = game_format[0][0]
+def get_game_type(t_title):
+    game_type = read_query(f'SELECT game_type FROM tournaments WHERE title = ?', (t_title,))
+    result = game_type[0][0]
     return result
 
 def add_participant(participant: Player, tournament: Tournament):   # TODO: add | Team
