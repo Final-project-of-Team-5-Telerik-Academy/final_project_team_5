@@ -7,8 +7,9 @@ statistics_router = APIRouter(prefix='/statistics', tags=['Statistics'])
 
 
 @statistics_router.get('/')
-def get_players_statistics(player_name: str):
-    existing_player = player_service.get_player_by_full_name(player_name)
+def get_players_statistics(tp_name: str = Query(description='type a team or player name')):
+
+    existing_player = player_service.get_player_by_full_name(tp_name)
     if existing_player is None:
         return JSONResponse(status_code=404, content=f'{existing_player} is not found')
 

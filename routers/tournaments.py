@@ -42,7 +42,7 @@ def create_tournament(token: str = Header(),
 
 
 "ADD PARTICIPANTS TO TOURNAMENT"
-@tournaments_router.put('/add/{players}')
+@tournaments_router.put('/add/{t_title}/{participant}')
 def add_participant_to_tournament(t_title: str, participant: str, token):
     tournament = tournament_service.get_tournament_by_title(t_title)
 

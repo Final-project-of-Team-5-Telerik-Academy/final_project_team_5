@@ -14,17 +14,29 @@ def get_player_statistics(player_name:str):
     tournaments_played_data = read_query('SELECT tournament_name FROM players_has_matches WHERE player_name = ?', (player_name,))
     tournaments_trophy_data = read_query('SELECT tournament_trophy FROM players_has_matches WHERE player_name = ?', (player_name,))
     most_often_played_opponent_data = read_query(f'''SELECT opponent_name, COUNT(opponent_name) AS occurrence_count
-                                                FROM players_has_matches WHERE opponent_name <> '{player_name}'
+                                                FROM players_has_matches WHERE opponent_name <> ?
                                                 GROUP BY opponent_name ORDER BY occurrence_count DESC LIMIT 1''', (player_name,))
-
+    best_opponent_data = read_query(f'''SELECT opponent_name, COUNT(*) AS win_count FROM players_has_matches
+                                        WHERE player_name = '{player_name}' AND win = 1 GROUP BY opponent_name 
+                                        ORDER BY win_count DESC LIMIT 1''')
+    worst_opponent_data = read_query(f'''SELECT opponent_name, COUNT(*) AS loss_count FROM players_has_matches
+                                        WHERE player_name = '{player_name}' AND loss = 1 GROUP BY opponent_name 
+                                        ORDER BY loss_count DESC LIMIT 1''')
 
     wins = sum([el[0] for el in wins_data])
     losses = sum([el[0] for el in losses_data])
+
     tournaments_played = len([el[0] for el in tournaments_played_data if el[0] != 'not part of a tournament'])
     tournaments_trophy = sum([el[0] for el in tournaments_trophy_data])
-    most_often_played_opponent = most_often_played_opponent_data[0][0]
-    games_against_him = most_often_played_opponent_data[0][1]
 
+    most_often_played_opponent = most_often_played_opponent_data[0][0]
+    games_against_most_often = most_often_played_opponent_data[0][1]
+
+    best_opponent = best_opponent_data[0][0]
+    games_against_best_opponent = best_opponent_data[0][1]
+
+    worst_opponent = worst_opponent_data[0][0]
+    games_against_worst_opponent = worst_opponent_data[0][1]
 
     result = []
     result.append('-= SUMMARY =-')
@@ -33,8 +45,12 @@ def get_player_statistics(player_name:str):
               'total losses': losses,
               'tournaments played': tournaments_played,
               'tournaments trophy': tournaments_trophy,
-              'most often played opponent': most_often_played_opponent,
-              'games_against_him': games_against_him
+              'most often opponent': most_often_played_opponent,
+              'games against most often opponent': games_against_most_often,
+              'best opponent': best_opponent,
+              'games against best opponent': games_against_best_opponent,
+              'worst opponent': worst_opponent,
+              'games against worst opponent': games_against_worst_opponent
               }
     result.append(header)
     result.append('-= MATCHES LIST =-')

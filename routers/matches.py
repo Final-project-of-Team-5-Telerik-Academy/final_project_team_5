@@ -14,7 +14,7 @@ matches_router = APIRouter(prefix='/matches', tags=['Matches'])
 
 
 "CREATE MATCH ONE ON ONE"
-@matches_router.post('/create/one_on_one', description='You can create new match')
+@matches_router.post('/create/one_on_one/{match_id}', description='You can create new match')
 def create_match_one_on_one(token: str = Header(),
                  format: str = Form(..., description="Select an option",
                                     example='time limit', enum=['time limit', 'score limit']),
@@ -133,7 +133,6 @@ def view_all_matches(sort: str = Query(description='sort by date: asc / desc', d
 
     result = match_service.get_all_matches(status, sort)
     return result
-
 
 
 

@@ -17,7 +17,7 @@ def check_current_date():
 
 
 "SET SPECIFIC DATE IN THE FUTURE"
-@date_router.post('/date', description='Set specific date in the future in format "yyyy-mm-dd" (2023-3-15).')
+@date_router.post('/date/{future_date}', description='Set specific date in the future in format "yyyy-mm-dd" (2023-3-15).')
 def set_specific_date(date: str):
 # check format is correct    alternative: ^(0?[1-9]|[12][0-9]|3[01])[\/\-](0?[1-9]|1[012])[\/\-]\d{4}$
     pattern = re.compile(r'^\d{4}[\/\-](0?[1-9]|1[012])[\/\-](0?[1-9]|[12][0-9]|3[01])$')
@@ -39,7 +39,7 @@ def set_specific_date(date: str):
 
 
 "ADD NUMBER OF DAYS TO CURRENT DATE"
-@date_router.post('/days', description='Specify the number of days in the future.')
+@date_router.patch('/days/{days}', description='Specify the number of days in the future.')
 def add_number_of_days(days: int):
     if days <= 0:
         return JSONResponse(status_code=400, content="The number must be positive.")
