@@ -35,6 +35,13 @@ def update_query(sql: str, sql_params=()) -> bool:
         conn.commit()
 
         return cursor.rowcount > 0
-    
 
+
+def read_query_additional(sql: str, sql_params=()):
+    '''Used only in match_service'''
+    with _get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(sql, sql_params)
+
+        return cursor.fetchone()
 

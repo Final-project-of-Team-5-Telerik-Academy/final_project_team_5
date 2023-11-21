@@ -3,6 +3,7 @@ from services import shared_service
 from services import admin_service
 from services import player_service
 from services import user_service
+from services import email_service
 from authentication.authenticator import get_user_or_raise_401
 from my_models.model_user import User
 from fastapi.responses import JSONResponse
@@ -119,13 +120,16 @@ def edit_users(id: int = Query(..., description='Enter ID of user:'),
         
         new_role = 'player'
         admin_service.edit_user_role(old_user, new_role)
+
+        email_type = 'link_profile_approved'
+        email_service.send_email(old_user.email, email_type)
         
         if shared_service.user_connection_request_exists(old_user.id):
             request_status = 'finished'
             type_of_request = 'connection'
             admin_service.edit_requests_connection_status(request_status, players_id, type_of_request, id)
             return f"User's account is linked with players_id: {players_id}, user's role is updated to: '{new_role}' and the status of the request is updated to 'finished'."
-        
+
         return f"User's account is linked with players_id: {players_id} and user's role is updated to: '{new_role}'."
 
     # Change role of user: promotion and demotion
@@ -175,6 +179,9 @@ def edit_users(id: int = Query(..., description='Enter ID of user:'),
                 is_active = 1
                 is_connected = 1
                 player_service.edit_is_active_in_player(is_active, old_user.full_name, is_connected)
+
+                email_type = 'promotion_approved'
+                email_service.send_email(old_user.email, email_type)
             
                 return {f"User's role is promoted to '{new_role}' and the connected player's account is retired."}
             
@@ -200,12 +207,12 @@ def delete_user(id: int = Query(..., description='Enter ID of the user you want 
     '''
 
     if x_token == None:
-        return JSONResponse(status_code=401, content='You must be logged in and be an admin to be able to delete a user.')    
+        return JSONResponse(status_code=401, content='You must be logged in and be an admin to be able to delete an user.')    
     
     user = get_user_or_raise_401(x_token)
     
     if not User.is_admin(user):
-        return JSONResponse(status_code=401, content='You must be an admin to be able to delete a user.')
+        return JSONResponse(status_code=401, content='You must be an admin to be able to delete an user.')
     
     if not shared_service.id_exists(id, 'users'):
         return JSONResponse(status_code=404, content=f'User with id: {id} does not exist.')
