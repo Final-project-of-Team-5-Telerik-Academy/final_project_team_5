@@ -3,9 +3,9 @@ from fastapi.responses import JSONResponse
 
 
 
-def get_player_statistics(player_name:str):
-    all_matches = read_query('''SELECT player_name, opponent_name, win, loss, matches_id, tournament_name 
-                            FROM players_has_matches WHERE player_name = ?''', (player_name,))
+def get_player_statistics(player_name:str, wanted_matches: str):
+    all_matches = read_query('''SELECT player_name, opponent_name, win, loss, matches_id, tournament_name, date 
+                            FROM players_has_matches WHERE player_name = ? ORDER BY date''', (player_name,))
     if len(all_matches) == 0:
         return JSONResponse(status_code=404, content=f'{player_name} has no statistics yet.')
 
@@ -38,8 +38,8 @@ def get_player_statistics(player_name:str):
     worst_opponent = worst_opponent_data[0][0]
     games_against_worst_opponent = worst_opponent_data[0][1]
 
-    result = []
-    result.append('-= SUMMARY =-')
+    results_list = []
+    results_list.append('-= SUMMARY =-')
     header = {'name': f'{player_name}',
               'total wins': wins,
               'total losses': losses,
@@ -52,22 +52,99 @@ def get_player_statistics(player_name:str):
               'worst opponent': worst_opponent,
               'games against worst opponent': games_against_worst_opponent
               }
-    result.append(header)
-    result.append('-= MATCHES LIST =-')
+    results_list.append(header)
+    results_list.append('-= MATCHES LIST =-')
 
+
+    if wanted_matches == 'all':
+        all_matches = all_matches_convertor(all_matches)
+        for el in all_matches:
+            results_list.append(el)
+
+    elif wanted_matches == 'wins':
+        win_matches = wins_matches_convertor(all_matches)
+        for el in win_matches:
+            results_list.append(el)
+
+    elif wanted_matches == 'losses':
+        loss_matches = losses_matches_convertor(all_matches)
+        for el in loss_matches:
+            results_list.append(el)
+
+    else:
+        return JSONResponse(status_code=400, content="You can choose between: all / wins / losses.")
+
+    return results_list
+
+
+
+def all_matches_convertor(all_matches):
+    data = []
+    counter = 0
     for row in all_matches:
-        player_name= row[0]
+        counter += 1
+        player_name = row[0]
         opponent_name = row[1]
-        win = row [2]
+        win = row[2]
         loss = row[3]
         matches_id = row[4]
         tournament_name = row[5]
+        date = row[6]
         data_dict = {
-            'game': f'{player_name} vs {opponent_name}',
-            'winner': f'{player_name if win==1 else opponent_name}',
+            f"{player_name}'s match #": counter,
+            'match': f'{player_name} vs {opponent_name}',
+            'winner': f'{player_name if win == 1 else opponent_name}',
             'match id': matches_id,
-            'tournament name': f"{tournament_name if tournament_name else 'not part of a tournament'}"
+            'tournament name': f"{tournament_name if tournament_name else 'not part of a tournament'}",
+            'date': date
         }
-        result.append(data_dict)
 
-    return result
+        data.append(data_dict)
+    return data
+
+
+
+def wins_matches_convertor(all_matches):
+    data = []
+    for row in all_matches:
+        if row[2] == 1:
+            player_name = row[0]
+            opponent_name = row[1]
+            win = row[2]
+            loss = row[3]
+            matches_id = row[4]
+            tournament_name = row[5]
+            date = row[6]
+            data_dict = {
+                'match': f'{player_name} vs {opponent_name}',
+                'winner': f'{player_name if win == 1 else opponent_name}',
+                'match id': matches_id,
+                'tournament name': f"{tournament_name if tournament_name else 'not part of a tournament'}",
+                'date': date
+            }
+            data.append(data_dict)
+
+    return data
+
+
+
+def losses_matches_convertor(all_matches):
+    data = []
+    for row in all_matches:
+        if row[2] == 0:
+            player_name = row[0]
+            opponent_name = row[1]
+            win = row[2]
+            loss = row[3]
+            matches_id = row[4]
+            tournament_name = row[5]
+            data_dict = {
+                'match': f'{player_name} vs {opponent_name}',
+                'winner': f'{player_name if win == 1 else opponent_name}',
+                'match id': matches_id,
+                'tournament name': f"{tournament_name if tournament_name else 'not part of a tournament'}"}
+            data.append(data_dict)
+
+    return data
+
+
