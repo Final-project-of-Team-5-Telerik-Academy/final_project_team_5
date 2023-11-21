@@ -14,19 +14,33 @@ def get_all_matches(status: str, sort: str):
     today = date_service.current_date()
     where_clause = []
 
-    if status == 'upcoming':
-        where_clause.append(f"WHERE date > '{today}'")
-
     if status == 'played':
         where_clause.append(f"WHERE date < '{today}'")
 
+    elif status == 'upcoming':
+        where_clause.append(f"WHERE date > '{today}'")
+
+
     where_clause.append(f'ORDER BY id {sort}')
-
     sql += ' '.join(where_clause)
-    result = (Match.from_query_result(*row) for row in read_query(sql))
+    row_data = read_query(sql)
 
-    if status == 'upcoming' and len(list(result)) == 0:
+    if status == 'upcoming' and len(list(row_data)) == 0:
         return f'No upcoming matches for now.'
+
+    result = []
+    for el in row_data:
+        match_dict = {
+            'id': el[0],
+            'format': el[1],
+            'game type': el[2],
+            'participant 1': el[3],
+            'participant 2': el[4],
+            'date': el[5],
+            'winner': el[6],
+            'tournament_name': el[7]}
+        result.append(match_dict)
+
     return result
 
 
@@ -46,10 +60,10 @@ def get_match_by_id(id: int):
 
 
 
-def create_match(format: str, game_type: str, participant_1: str, participant_2: str, date):
-    generated_match = insert_query('''INSERT INTO matches (format, game_type, participant_1, participant_2, date) 
-                                    VALUES (?, ?, ?, ?, ?)''',
-                                   (format, game_type, participant_1, participant_2, date))
+def create_match(format: str, game_type: str, participant_1: str, participant_2: str, date, tournament_name: str):
+    generated_match = insert_query('''INSERT INTO matches (format, game_type, participant_1, participant_2, date, winner, tournament_name) 
+                                    VALUES (?, ?, ?, ?, ?, ?, ?)''',
+                                   (format, game_type, participant_1, participant_2, date, 'not played', tournament_name))
 
     match_id = generated_match
     result = Match.from_query_result(id=match_id,
@@ -58,8 +72,8 @@ def create_match(format: str, game_type: str, participant_1: str, participant_2:
                    participant_1 = participant_1,
                    participant_2 = participant_2,
                    date = date,
-                   winner='Тhe match has not been played yet',
-                   tournament_name = 'add tournament name if needed')
+                   winner='not played',
+                   tournament_name = tournament_name)
     return result
 
 
@@ -77,12 +91,10 @@ def create_match(format: str, game_type: str, participant_1: str, participant_2:
 
 
 
-def play_match(today: date):
-    today = date_service.current_date()
-    row_data = read_query(f"""SELECT id, format, game_type, participant_1, participant_2, date, winner, tournament_name 
-    FROM matches WHERE isnull(winner) AND date < '{today}'""")
-
-    upcoming_matches = (Match.from_query_result(*row) for row in row_data)
+def play_match(new_date: date):
+    matches_row_data = read_query("""SELECT id, format, game_type, participant_1, participant_2, date, winner, tournament_name 
+    FROM matches WHERE winner = ? AND date <= ?""", ('not played', new_date))
+    upcoming_matches = (Match.from_query_result(*row) for row in matches_row_data)
 
     for current_match in upcoming_matches:
         participant_1 = player_service.get_player_by_full_name(current_match.participant_1)
@@ -92,11 +104,9 @@ def play_match(today: date):
         winner_id = random.choice(players)
         winner_name = participant_1.full_name if winner_id == 1 else participant_2.full_name
 
-    # update match detail
         update_query('''UPDATE matches SET winner = ? WHERE id = ?''',
                      (winner_name, current_match.id))
 
-        # participant 1 result
         update_statistics(participant_1.full_name,
                           participant_2.full_name,
                           win = 1 if winner_id == 1 else 0,
@@ -105,7 +115,6 @@ def play_match(today: date):
                           tournament_name = current_match.tournament_name,
                           date = current_match.date)
 
-    # participant 2 result
         update_statistics(participant_2.full_name,
                           participant_1.full_name,
                           win = 0 if winner_id == 1 else 1,

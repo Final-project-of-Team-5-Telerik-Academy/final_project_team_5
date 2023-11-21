@@ -13,14 +13,35 @@ from services import player_service
 matches_router = APIRouter(prefix='/matches', tags=['Matches'])
 
 
+
+"VIEW MATCHES"
+@matches_router.get('/', description='You can view all matches')
+def view_all_matches(sort: str = Query(description='sort by date: asc / desc', default='asc'),
+                    status: str = Query(description='filter br: all / played / upcoming', default='all')):
+
+    result = match_service.get_all_matches(status, sort)
+    return result
+
+
+
+@matches_router.get('/{id}', description='You can view all matches')
+def view_match_by_id(id: int):
+    result = match_service.get_match_by_id(id)
+    if not result:
+        return f'There is no match with id {id}.'
+    return result
+
+
+
 "CREATE MATCH ONE ON ONE"
-@matches_router.post('/create/one_on_one', description='You can create new match')
+@matches_router.post('/create/one_on_one/{match_id}', description='You can create new match')
 def create_match_one_on_one(token: str = Header(),
                  format: str = Form(..., description="Select an option",
                                     example='time limit', enum=['time limit', 'score limit']),
                  participant_1: str = Query(),
                  participant_2: str = Query(),
-                 date: str = Query(description='write date in format yyyy-mm-dd')):
+                 date: str = Query(description='write date in format yyyy-mm-dd'),
+                 tournament_name: str = Query(default='not part of a tournament')):
 
 # check if authenticated and role
     user = get_user_or_raise_401(token)
@@ -58,8 +79,12 @@ def create_match_one_on_one(token: str = Header(),
             return f'{existing_player} is not activ player.'
         participant_2 = existing_player.full_name
 
+    if participant_1 == participant_2:
+        return JSONResponse(status_code=400, content='Choose different players')
+
     # create match
-    match = match_service.create_match(format, 'one on one', participant_1, participant_2, date)
+    match = match_service.create_match(
+        format, 'one on one', participant_1, participant_2, date, tournament_name)
     output.append(match)
     return match
 
@@ -117,22 +142,6 @@ def create_match_one_on_one(token: str = Header(),
 
 
 
-@matches_router.get('/{id}', description='You can view all matches')
-def view_match_by_id(id: int):
-    result = match_service.get_match_by_id(id)
-    if not result:
-        return f'There is no match with id {id}.'
-    return result
-
-
-
-"VIEW MATCHES"
-@matches_router.get('/', description='You can view all matches')
-def view_all_matches(sort: str = Query(description='sort by date: asc / desc', default='asc'),
-                    status: str = Query(description='filter br: all / played / upcoming', default='all')):
-
-    result = match_service.get_all_matches(status, sort)
-    return result
 
 
 
