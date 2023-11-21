@@ -8,14 +8,14 @@ class Player(BaseModel):
     sports_club: str
     is_active: int | None = 0
     is_connected: int | None = 0
-    statistics_matches_id: int | None = None
+    teams_id: int | None = None
 
     @classmethod
-    def from_query_result(cls, id, full_name, country, sports_club, is_active, is_connected, statistics_matches_id):
+    def from_query_result(cls, id, full_name, country, sports_club, is_active, is_connected, teams_id):
         ''' When query is used in another function.
 
         Returns:
-            - id, full_name, country, sports_club, is_active, is_connected, statistics_matches_id
+            - id, full_name, country, sports_club, is_active, is_connected, teams_id
         '''
 
         return cls(
@@ -25,5 +25,6 @@ class Player(BaseModel):
             sports_club=sports_club,
             is_active=is_active,
             is_connected=is_connected,
-            statistics_matches_id=statistics_matches_id
+            teams_id=teams_id
         )
+    

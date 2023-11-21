@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 def get_player_by_id(players_id: int) -> Player | None:
 
     data = read_query(
-        'SELECT id, full_name, country, sports_club, is_active, is_connected, statistics_matches_id FROM players WHERE id = ?',
+        'SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id FROM players WHERE id = ?',
         (players_id,)
         )
 
@@ -17,7 +17,7 @@ def get_player_by_id(players_id: int) -> Player | None:
 def get_player_by_full_name(full_name: str) -> Player | None:
 
     data = read_query(
-        'SELECT id, full_name, country, sports_club, is_active, is_connected, statistics_matches_id FROM players WHERE full_name = ?',
+        'SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id FROM players WHERE full_name = ?',
         (full_name,)
         )
 
@@ -28,10 +28,10 @@ def get_all_players() -> Player | None:
     ''' Search in the database and creates a list of all players. 
     
     Returns:
-        - a list of all players(id, full_name, country, sports_club, is_active, is_connected, statistics_matches_id)
+        - a list of all players(id, full_name, country, sports_club, is_active, is_connected, teams_id)
     '''
 
-    data = read_query('SELECT id, full_name, country, sports_club, is_active, is_connected, statistics_matches_id FROM players')
+    data = read_query('SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id FROM players')
 
     result = (Player.from_query_result(*row) for row in data)
 
@@ -53,13 +53,13 @@ def create_player(full_name: str, country: str, sports_club: str) -> Player:
     if full_name_exists(full_name, 'players'):
         return JSONResponse(status_code=400, content=f'The full name: {full_name} is already taken!')
 
-    is_active = 1
+    is_active = 0
     is_connected = 0
-    statistics_matches_id = None
+    teams_id = None
     
     generated_id = insert_query(
-        'INSERT INTO players(full_name, country, sports_club, is_active, is_connected, statistics_matches_id) VALUES (?,?,?,?,?,?)',
-        (full_name, country, sports_club, is_active, is_connected, statistics_matches_id)  
+        'INSERT INTO players(full_name, country, sports_club, is_active, is_connected, teams_id) VALUES (?,?,?,?,?,?)',
+        (full_name, country, sports_club, is_active, is_connected, teams_id)  
     )
 
     return Player(
@@ -69,7 +69,7 @@ def create_player(full_name: str, country: str, sports_club: str) -> Player:
         sports_club=sports_club,
         is_active=is_active,
         is_connected=is_connected,
-        statistics_matches_id=statistics_matches_id
+        teams_id=teams_id
     )
 
 
