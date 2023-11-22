@@ -1,18 +1,18 @@
-from fastapi import APIRouter, Header, Query
+from fastapi import APIRouter, Header, Query, Form
 from services import shared_service
 from authentication.authenticator import get_user_or_raise_401
 from my_models.model_user import User
 from fastapi.responses import JSONResponse
 from services import player_service
-
+from my_models import countries, sport_clubs
 
 players_router = APIRouter(prefix='/players', tags={'Players'})
 
 
 @players_router.post('/', description='Create a new player:')
 def create_player(full_name: str = Query(..., description='Enter full name of player:'),
-                  country: str = Query(..., description='Enter country of player:'),
-                  sports_club: str = Query(..., description='Enter sport club of player:'),
+                  country: str = Form(..., description='Choose a country:',example='Bulgaria', enum=countries.countries),
+                  sports_club: str = Form(..., description='Choose a club sport:', example='Tenis Stars', enum=sport_clubs.sport_clubs),
                   x_token: str = Header(default=None)):
     ''' Used for creating a new player by a director or admin.
 

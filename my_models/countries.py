@@ -1,0 +1,11 @@
+countries = ['Argentina', 'Australia', 'Austria', 'Bangladesh', 
+             'Belgium', 'Brazil', 'Bulgaria', 'Canada', 'Chile', 
+             'China', 'Colombia', 'Czech Republic', 'Denmark', 
+             'Egypt', 'France', 'Germany', 'Greece', 'Hungary', 
+             'India', 'Indonesia', 'Iran', 'Israel', 'Italy', 
+             'Japan', 'Kenya', 'Malaysia', 'Mexico', 'Netherlands', 
+             'New Zealand', 'Nigeria', 'Norway', 'Pakistan', 'Peru', 
+             'Philippines', 'Poland', 'Russia', 'Saudi Arabia', 
+             'Singapore', 'South Africa', 'South Korea', 'Spain', 
+             'Sweden', 'Switzerland', 'Thailand', 'Turkey', 
+             'United Kingdom', 'United States', 'Vietnam']

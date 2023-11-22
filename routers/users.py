@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Header, Query
+from fastapi import APIRouter, Header, Query, Form
 from services import user_service
 from services import shared_service
 from authentication.authenticator import get_user_or_raise_401, create_token
@@ -15,7 +15,7 @@ def register(full_name: str = Query(..., description='Enter your full name:'),
              email: str = Query(..., description='Enter your email address:'),
              password: str = Query(..., description='Enter your password: (It has to be at least 6 characters!)'),
              re_password: str = Query(..., description='Re enter your password for validation:'),
-             gender: str = Query(..., description='Choose a gender: male/female/non-binary')):
+             gender: str = Form(..., description='Choose a gender:',example='male', enum = ['male', 'female', 'non-binary'])):
     ''' Used for registering new users.
     
     Args:

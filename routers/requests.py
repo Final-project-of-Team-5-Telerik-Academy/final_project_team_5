@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Header, Query
+from fastapi import APIRouter, Header, Query, Form
 from services import user_service
 from services import shared_service
 from services import admin_service
@@ -12,7 +12,7 @@ requests_router = APIRouter(prefix='/requests', tags={'Requests'})
 
 
 @requests_router.post('/', description="Please fill the form to create and send a connection/promotion request:")
-def create_request(type_of_request: str = Query(default=None, description="Choose between 'connection' or 'promotion':"),
+def create_request(type_of_request: str = Form(..., description='Choose your role:',example='connection', enum = ['connection', 'promotion']),
              players_id: int = Query(default=None, description="Enter ID of the player's account:"),
              x_token: str = Header(default=None)):
     ''' Used for creating and sending a request for connection or promotion.
