@@ -12,12 +12,13 @@ class Tournament(BaseModel):
     game_type: str
     creator: str | int
     is_finished: bool
+    number_participants: str
     participant: list | str = None
 
 
     @classmethod
     def from_query_result(cls, id, title, format, date, prize,
-                          game_type, creator_id, is_finished):
+                          game_type, creator_id, is_finished, number_participants):
 
         creator_name = user_service.get_user_full_name_by_id(creator_id)
         pt_list = []
@@ -29,6 +30,7 @@ class Tournament(BaseModel):
                    game_type = game_type,
                    creator = creator_name,
                    is_finished = is_finished,
+                   number_participants=number_participants,
                    participant = pt_list)
 
 

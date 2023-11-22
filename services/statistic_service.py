@@ -5,21 +5,21 @@ from fastapi.responses import JSONResponse
 
 def get_player_statistics(player_name:str, wanted_matches: str):
     all_matches = read_query('''SELECT player_name, opponent_name, win, loss, matches_id, tournament_name, date 
-                            FROM players_has_matches WHERE player_name = ? ORDER BY date''', (player_name,))
+                            FROM players_statistics WHERE player_name = ? ORDER BY date''', (player_name,))
     if len(all_matches) == 0:
         return JSONResponse(status_code=404, content=f'{player_name} has no statistics yet.')
 
-    wins_data = read_query('SELECT win FROM players_has_matches WHERE player_name = ?', (player_name,))
-    losses_data = read_query('SELECT loss FROM players_has_matches WHERE player_name = ?', (player_name,))
-    tournaments_played_data = read_query('SELECT tournament_name FROM players_has_matches WHERE player_name = ?', (player_name,))
-    tournaments_trophy_data = read_query('SELECT tournament_trophy FROM players_has_matches WHERE player_name = ?', (player_name,))
+    wins_data = read_query('SELECT win FROM players_statistics WHERE player_name = ?', (player_name,))
+    losses_data = read_query('SELECT loss FROM players_statistics WHERE player_name = ?', (player_name,))
+    tournaments_played_data = read_query('SELECT tournament_name FROM players_statistics WHERE player_name = ?', (player_name,))
+    tournaments_trophy_data = read_query('SELECT tournament_trophy FROM players_statistics WHERE player_name = ?', (player_name,))
     most_often_played_opponent_data = read_query(f'''SELECT opponent_name, COUNT(opponent_name) AS occurrence_count
-                                                FROM players_has_matches WHERE opponent_name <> ?
+                                                FROM players_statistics WHERE opponent_name <> ?
                                                 GROUP BY opponent_name ORDER BY occurrence_count DESC LIMIT 1''', (player_name,))
-    best_opponent_data = read_query(f'''SELECT opponent_name, COUNT(*) AS win_count FROM players_has_matches
+    best_opponent_data = read_query(f'''SELECT opponent_name, COUNT(*) AS win_count FROM players_statistics
                                         WHERE player_name = '{player_name}' AND win = 1 GROUP BY opponent_name 
                                         ORDER BY win_count DESC LIMIT 1''')
-    worst_opponent_data = read_query(f'''SELECT opponent_name, COUNT(*) AS loss_count FROM players_has_matches
+    worst_opponent_data = read_query(f'''SELECT opponent_name, COUNT(*) AS loss_count FROM players_statistics
                                         WHERE player_name = '{player_name}' AND loss = 1 GROUP BY opponent_name 
                                         ORDER BY loss_count DESC LIMIT 1''')
 
@@ -148,3 +148,24 @@ def losses_matches_convertor(all_matches):
     return data
 
 
+
+def players_ranklist(sort:str, order_date: str):
+    where_clause = []
+    sql = 'SELECT player_name, opponent_name, win, loss, matches_id, tournament_name, date FROM players_statistics'
+    where_clause.append(sql)
+
+    if sort == 'personal wins':
+        where_clause.append('ORDER BY wins')
+
+    elif sort == 'tournament wins':
+        pass
+    elif sort == 'played matches one on one':
+        pass
+    elif sort == 'played in tournaments':
+        pass
+
+    if order_date == 'ascending':
+        where_clause.append('ASC')
+    else:
+        where_clause.append("DESC")
+# tournaments'

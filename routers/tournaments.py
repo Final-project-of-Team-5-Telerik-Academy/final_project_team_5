@@ -13,12 +13,13 @@ tournaments_router = APIRouter(prefix='/tournaments', tags=['Tournaments'])
 
 "CREATE TOURNAMENT"
 @tournaments_router.post('/create')
-def create_tournament(token: str = Header(),
-                      title: str = Query(min_length=5),
+def create_tournament(token: str = Header(), title: str = Query(min_length=5),
                       format: str = Form(..., description="Select an option",
                                          example='knockout', enum=['knockout', 'league']),
                       game_type: str = Form(..., description="Select an option",
                                             example='players', enum=['one on one', 'team game']),
+                      number_participants: int = Form(..., description='Select number participants',
+                                                      example=8, enum=[4, 8, 16, 32, 64, 128]),
                       date: str = Query(description='write date in format yyyy-mm-dd'),
                       prize: int = Query(gt=-1)):
 
@@ -35,7 +36,7 @@ def create_tournament(token: str = Header(),
 # creating new tournament
     date = datetime.strptime(date, "%Y-%m-%d").date()
     new_tournament = tournament_service.create_tournament(
-        title, format, date, prize, game_type, creator)
+        title, format, date, prize, game_type, creator, number_participants)
 
     return new_tournament
 
@@ -83,24 +84,17 @@ def add_participant_to_tournament(t_title: str, participant: str, token):
         return result
 
 
-# if game type is Team game     TODO:
-#     elif game_type == 'team game':
-#     # check if team exists
-#         if not team_service.team_exists(participant):
-#             return JSONResponse(status_code=404, content=f'Team {participant} not found.')
+    # if game type is Team game     TODO:
+    #     elif game_type == 'team game':
+    #     # check if team exists
+    #         if not team_service.team_exists(participant):
+    #             return JSONResponse(status_code=404, content=f'Team {participant} not found.')
 
 
 
 
 """
 Tournament(BaseModel):
-    ...
-    
-    included_teams: list = [tp1, tp2, tp3, tp4]
-    winner: TP
-    
-
-    tp = team_or_player
 
 
 IF KNOCKOUT:

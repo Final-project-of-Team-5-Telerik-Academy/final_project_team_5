@@ -7,11 +7,11 @@ from my_models.model_player import Player
 from my_models.model_tournament import Tournament
 
 
-def create_tournament(title: str, format: str, date: date, prize: int, game_type: str, creator: User):
+def create_tournament(title: str, format: str, date: date, prize: int, game_type: str, creator: User, number_participants: int):
 
     generated_tournament = insert_query(
-        '''INSERT INTO tournaments (title, format, date, prize, users_creator_id, game_type)
-        VALUE (?, ?, ?, ?, ?, ?)''',(title, format, date, prize, creator.id, game_type))
+        '''INSERT INTO tournaments (title, format, date, prize, users_creator_id, game_type, number_participants)
+        VALUE (?, ?, ?, ?, ?, ?, ?)''',(title, format, date, prize, creator.id, game_type, number_participants))
 
     result = Tournament(id = generated_tournament,
                         title = title,
@@ -21,6 +21,7 @@ def create_tournament(title: str, format: str, date: date, prize: int, game_type
                         game_type = game_type,
                         creator = creator.full_name,
                         is_finished = False,
+                        number_participants=number_participants,
                         participant = 'Add players/teams to the tournament')
     return result
 
