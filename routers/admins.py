@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Header, Query
+from fastapi import APIRouter, Header, Query, Form
 from services import shared_service
 from services import admin_service
 from services import player_service
@@ -56,8 +56,8 @@ def user_info(id: int = Query(default=None, description="Enter ID of user:"),
 
 @admins_router.put('/users', description="Edit user's account:")
 def edit_users(id: int = Query(..., description='Enter ID of user:'),
-                    new_role: str = Query(default=None, description="Choose between 'spectator', 'player' or 'director':"),
-                    command: str = Query(default=None, description="Choose between 'promotion', 'demotion' or 'connection':"),
+                    new_role: str = Form(..., description='Choose your role:',example='spectator', enum = ['spectator', 'player', 'director']),
+                    command: str = Form(..., description='Choose a between:',example='promotion', enum = ['promotion', 'demotion', 'connection']),
                     players_id: int = Query(default=None, description='Enter ID of player:'),
                     x_token: str = Header(default=None)
                     ):
