@@ -119,3 +119,24 @@ def delete_team(id: int):
 
     insert_query('''DELETE FROM teams WHERE id = ?''',
                  (id,))
+
+
+
+def get_team_by_name(name: str) -> Team | None:
+    ''' Used for getting a single team by team.name.
+
+    Args:
+        - team.id: int(URL link)
+
+    Returns:
+        - team
+    '''
+
+    team = read_query_additional('SELECT id, team_name, number_of_players, owners_id FROM teams where team_name = ?', (name,))
+
+    if team is None:
+        return JSONResponse(status_code=404, content=f'Team with name: {name} does not exist.')
+
+    actual = Team.from_query_result(*team)
+
+    return actual

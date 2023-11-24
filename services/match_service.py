@@ -21,7 +21,7 @@ def get_all_matches(status: str, sort: str):
         where_clause.append(f"WHERE date > '{today}'")
 
 
-    where_clause.append(f'ORDER BY id {sort}')
+    where_clause.append(f'ORDER BY date {sort}')
     sql += ' '.join(where_clause)
     row_data = read_query(sql)
 

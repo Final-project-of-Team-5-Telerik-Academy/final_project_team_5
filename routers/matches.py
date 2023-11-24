@@ -17,7 +17,7 @@ matches_router = APIRouter(prefix='/matches', tags=['Matches'])
 "VIEW MATCHES"
 @matches_router.get('/', description='You can view all matches')
 def view_all_matches(sort: str = Query(description='sort by date: asc / desc', default='asc'),
-                    status: str = Query(description='filter br: all / played / upcoming', default='all')):
+                    status: str = Query(description='filter by: all / played / upcoming', default='all')):
 
     result = match_service.get_all_matches(status, sort)
     return result
