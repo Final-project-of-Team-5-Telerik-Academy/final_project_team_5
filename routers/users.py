@@ -14,7 +14,7 @@ users_router = APIRouter(prefix='/users', tags={'Users'})
 def register(full_name: str = Query(..., description='Enter your full name:'),
              email: str = Query(..., description='Enter your email address:'),
              password: str = Query(..., description='Enter your password: (It has to be at least 6 characters!)'),
-             re_password: str = Query(..., description='Re enter your password for validation:'),
+             repeat_password: str = Query(..., description='Re enter your password for validation:'),
              gender: str = Form(..., description='Choose a gender:',example='male', enum = ['male', 'female', 'non-binary'])):
     ''' Used for registering new users.
     
@@ -22,7 +22,7 @@ def register(full_name: str = Query(..., description='Enter your full name:'),
         - full_name(str): Query
         - email(str): Query
         - password(str): Query
-        - re_password(str): QUery
+        - repeat_password(str): QUery
         - gender(str): Query
     
     Returns:
@@ -43,7 +43,7 @@ def register(full_name: str = Query(..., description='Enter your full name:'),
     if len(password) < 6:
         return JSONResponse(status_code=400, content='Password must be at least 6 characters long.')
     
-    if password != re_password:
+    if password != repeat_password:
         return JSONResponse(status_code=400, content="The password doesn't match.")
     
     if gender != 'male' and gender != 'female' and gender != 'non-binary' and gender != 'Male' and gender != 'Female' and gender != 'Non-binary':
