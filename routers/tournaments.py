@@ -46,50 +46,40 @@ def create_tournament(token: str = Header(),
 def add_participant_to_tournament(t_title: str, participant: str, token):
     tournament = tournament_service.get_tournament_by_title(t_title)
 
-# check if authenticated
+# check if authenticated admin or creator
     user = get_user_or_raise_401(token)
-
-# check admin or creator
     current_table = 'tournaments'
     creator_name = shared_service.get_creator_full_name(current_table, t_title)
     if not (user.full_name == creator_name or User.is_admin(user)):
         return JSONResponse(status_code=403, content='Only Admin and creator can assign players to match')
 
-# check if tournament exists
+# check tournament
     if not tournament:
         return JSONResponse(status_code=404, content=f'The tournament {t_title} does not exist.')
-
-# get game format and tournament object
-    game_type = tournament_service.get_game_type(t_title)
-
-# check if tournament is finished
     if tournament.is_finished:
         return f'the tournament {tournament.title} is finished.'
 
-# if game type is One on One
+# get game format and tournament object
+    game_type = tournament_service.get_game_type(t_title)
     if game_type == 'one on one':
-
-    # check if player exists
         player = player_service.get_player_by_full_name(participant)
         if player is None:
             return JSONResponse(status_code=404, content=f'Player {participant} not found.')
-
-    # check if player is already added
         if tournament_service.is_player_in_tournament(player.id, tournament.id):
-            return f'{player.full_name} is already in {tournament.title}'
+            return JSONResponse(status_code=400, content=f'{player.full_name} is already in {tournament.title}')
 
-        # player = player_service.get_player_by_full_name(participant)
         result = tournament_service.add_participant(player, tournament)
         return result
 
+    elif game_type == 'team game':
+        team = team_service.get_team(participant)
+        if team is None:
+            return JSONResponse(status_code=404, content=f'Team {participant} not found.')
+        if tournament_service.is_player_in_tournament(team.id, tournament.id):
+            return JSONResponse(status_code=400, content=f'{team.name} is already in {tournament.title}')
 
-# if game type is Team game     TODO:
-#     elif game_type == 'team game':
-#     # check if team exists
-#         if not team_service.team_exists(participant):
-#             return JSONResponse(status_code=404, content=f'Team {participant} not found.')
-
-
+        result = tournament_service.add_participant(team, tournament)
+        return result
 
 
 """

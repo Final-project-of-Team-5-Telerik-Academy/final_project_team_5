@@ -107,7 +107,8 @@ def play_match(new_date: date):
         update_query('''UPDATE matches SET winner = ? WHERE id = ?''',
                      (winner_name, current_match.id))
 
-        update_statistics(participant_1.full_name,
+        update_statistics(participant_1.id,
+                          participant_1.full_name,
                           participant_2.full_name,
                           win = 1 if winner_id == 1 else 0,
                           loss = 0 if winner_id == 1 else 1,
@@ -115,7 +116,8 @@ def play_match(new_date: date):
                           tournament_name = current_match.tournament_name,
                           date = current_match.date)
 
-        update_statistics(participant_2.full_name,
+        update_statistics(participant_2.id,
+                          participant_2.full_name,
                           participant_1.full_name,
                           win = 0 if winner_id == 1 else 1,
                           loss = 1 if winner_id == 1 else 0,
@@ -125,11 +127,11 @@ def play_match(new_date: date):
 
 
 
-def update_statistics(player_name: str, opponent_name: str, win: int,
+def update_statistics(player_id: int, player_name: str, opponent_name: str, win: int,
                       loss: int, matches_id: int, tournament_name: int, date):
-    insert_query('''INSERT INTO players_has_matches (player_name, opponent_name, win, loss, matches_id, tournament_name, date) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?)''',
-                 (player_name, opponent_name, win, loss, matches_id, tournament_name, date))
+    insert_query('''INSERT INTO players_statistics (players_id, player_name, opponent_name, win, loss, matches_id, tournament_name, date) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+                 (player_id, player_name, opponent_name, win, loss, matches_id, tournament_name, date))
 
 
 
