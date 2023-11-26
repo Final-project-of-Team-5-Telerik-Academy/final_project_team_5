@@ -36,7 +36,7 @@ def view_match_by_id(id: int):
 "CREATE MATCH ONE ON ONE"
 @matches_router.post('/create/one_on_one/{match_id}', description='You can create new match')
 def create_match_one_on_one(token: str = Header(),
-                 format: str = Form(..., description="Select an option",
+                 match_format: str = Form(..., description="Select an option",
                                     example='time limit', enum=['time limit', 'score limit']),
                  participant_1: str = Query(),
                  participant_2: str = Query(),
@@ -84,7 +84,7 @@ def create_match_one_on_one(token: str = Header(),
 
     # create match
     match = match_service.create_match(
-        format, 'one on one', participant_1, participant_2, date, tournament_name)
+        match_format, 'one on one', participant_1, participant_2, date, tournament_name)
     output.append(match)
     return match
 
@@ -94,7 +94,7 @@ def create_match_one_on_one(token: str = Header(),
 "CREATE MATCH TEAM GAME"    
 @matches_router.post('/create/team_game', description='You can create new match')
 def create_match_one_on_one(token: str = Header(),
-                 format: str = Form(..., description="Select an option",
+                 match_format: str = Form(..., description="Select an option",
                                     example='time limit', enum=['time limit', 'score limit']),
                  participant_1: str = Query(),
                  participant_2: str = Query(),
@@ -135,7 +135,7 @@ def create_match_one_on_one(token: str = Header(),
         participant_2 = existing_player.full_name
 
     # create match
-    match = match_service.create_match(format, 'one on one', participant_1, participant_2, date)
+    match = match_service.create_match(match_format, 'one on one', participant_1, participant_2, date)
     output.append(match)
     return match
 """
