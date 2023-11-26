@@ -220,3 +220,74 @@ def delete_user(id: int = Query(..., description='Enter ID of the user you want 
     admin_service.delete_user(id)
         
     return {'User is deleted.'}
+
+
+
+@admins_router.post('/blocked/players', description='Please enter the id of the player you want to block:')
+def block_players(players_id: int = Query(..., description='Enter ID of the player you want to block:'),
+                 ban_status: str = Form(..., description='Choose ban status:',example='temporary', enum = ['temporary', 'permanent']),
+                 x_token: str = Header(default=None),
+                 ):
+    
+    if x_token == None:
+        return JSONResponse(status_code=401, content='You must be logged in and be an admin to be able to block a player.')
+    
+    user = get_user_or_raise_401(x_token)
+    
+    if not User.is_admin(user):
+        return JSONResponse(status_code=401, content='You must be an admin to be able to block an player.')
+    
+    if not shared_service.id_of_player_exists(players_id):
+        return JSONResponse(status_code=404, content=f'Player with id: {players_id} does not exist.')
+    
+    if not shared_service.id_of_blocked_player_exists(players_id):
+        admin_service.insert_blocked_player(players_id, ban_status)
+    else:
+        return JSONResponse(status_code=404, content = f'Player with id: {players_id} already exists.')
+    
+    player_service.edit_is_active_in_player_by_id(players_id)
+
+    return {'message': 'Player is blocked successfully.'}
+
+
+
+@admins_router.get('/', description= 'Show all banned players:')
+def find_all_banned_players(x_token: str = Header(default=None, description='Your identification token:')):
+    
+    if x_token == None:
+        return JSONResponse(status_code=401, content='You must be logged in and be an admin to see the list of blocked players.')
+    
+    user = get_user_or_raise_401(x_token)
+    
+    if User.is_admin(user):
+        list_of_players = admin_service.get_all_banned_players()
+    else: 
+        return JSONResponse(status_code=401, content='You must be an admin to see the list of blocked players.')
+
+    return list_of_players
+
+
+@admins_router.delete('/blocked/players', description="Delete player's ban:")
+def remove_players_ban(players_id: int = Query(..., description='Enter ID of the blocked player you want to unban:'), 
+                x_token: str = Header(default=None)
+                ):
+    ''' Used for deleting a player from the blocked_players database. Only admins can do it.
+
+    Returns:
+        - Player is unblocked.
+    '''
+
+    if x_token == None:
+        return JSONResponse(status_code=401, content='You must be logged in and be an admin to be able to unblock a player.')    
+    
+    user = get_user_or_raise_401(x_token)
+    
+    if not User.is_admin(user):
+        return JSONResponse(status_code=401, content='You must be an admin to be able to unblock a player.')
+    
+    if not shared_service.id_of_blocked_player_exists(players_id):
+        return JSONResponse(status_code=404, content=f"Player with id is not banned.")
+    
+    admin_service.remove_blocked_player(players_id)
+    player_service.back_is_active_in_player_by_id(players_id)
+    return {'Message': 'Player is unblocked.'}
