@@ -10,35 +10,43 @@ import random
 
 
 
-def create_tournament(title: str, number_participants: int, format: str,
-                      date: date, prize: int, game_type: str, creator: User, stage=1):
+def create_tournament(title: str, number_participants: int, t_format: str, match_format: str,
+                      date: date, prize: int, game_type: str, creator: User, stage = 0):
+    winner = 'Not finished yet'
+    generated_tournament = insert_query('''INSERT INTO tournaments (title, number_participants, 
+        t_format, match_format, date, prize, game_type, winner, users_creator_id, stage)
+        VALUE (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+        (title, number_participants, t_format, match_format, date, prize, game_type, winner, creator.id, stage))
 
-    generated_tournament = insert_query(
-        '''INSERT INTO tournaments (title, number_participants, format, date, prize, users_creator_id, game_type, stage)
-        VALUE (?, ?, ?, ?, ?, ?, ?, ?)''',(title, number_participants, format, date, prize, creator.id, game_type, stage))
+    id = generated_tournament
+    title = title
+    number_participants = number_participants
+    t_format = t_format
+    match_format = match_format
+    date = date
+    prize = prize
+    game_type = game_type
+    winner = winner
+    creator = creator.full_name
+    is_complete = False
+    stage = stage
 
-    result = {'id': generated_tournament,
-              'title': title,
-              'number participants': number_participants,
-              'format': format,
-              'date': date,
-              'prize': prize,
-              'game type': game_type,
-              'creator': creator.full_name,
-              'message':'You must add participants to the tournament'}
-    return result
+    tournament = Tournament.from_query_result(id, title, number_participants,
+        t_format, match_format, date, prize, game_type, winner, creator, is_complete, stage)
+
+    return tournament
 
 
 
 def get_tournament_id_by_title(title: str):
     tournament_id = read_query('SELECT id FROM tournaments WHERE title = ?', (title,))
-    return None if not tournament_id else tournament_id
+    return None if not tournament_id else tournament_id[0][0]
 
 
 
 def get_tournament_by_title(title: str):
-    row_data = read_query('''SELECT id, title, number_participants, format, date, 
-        prize, game_type, winner, users_creator_id, is_complete 
+    row_data = read_query('''SELECT id, title, number_participants, t_format, match_format,
+        date, prize, game_type, winner, users_creator_id, is_complete, stage 
         FROM tournaments WHERE title = ?''', (title,))
 
     if not row_data:
@@ -113,13 +121,13 @@ def get_participant(tournament: Tournament, stage: int | None = None):
 
 
 def get_tournaments(sort: str | None, status: str):
-    sql = '''SELECT id, title, number_participants, format, date, prize, 
+    sql = '''SELECT id, title, number_participants, t_format, match_format, date, prize, 
     game_type, winner, users_creator_id, is_complete, stage FROM tournaments '''
     today = date_service.current_date()
     where_clause = []
 
     if status == 'played':
-        where_clause.append(f"WHERE date < '{today}'")
+        where_clause.append('WHERE winner <> "Not finished yet"')
     elif status == 'upcoming':
         where_clause.append(f"WHERE date > '{today}'")
 
@@ -127,37 +135,27 @@ def get_tournaments(sort: str | None, status: str):
     sql += ' '.join(where_clause)
     row_data = read_query(sql)
 
-    if status == 'upcoming' or len(list(row_data)) == 0:
-        return f'No upcoming tournaments for now.'
+    if status == len(list(row_data)) == 0:
+        return f'No tournaments for now.'
 
     result = []
     for el in row_data:
         if el[8] == 1:
-            id= el[0]
-            title= el[1]
-            number_participant= el[2]
-            format= el[3]
-            date= el[4]
-            prize= el[5]
-            game_type= el[6]
-            winner= 'Not finished yet' if el[7] is None else el[7]
-            creator = user_service.get_user_full_name_by_id(el[8])
-            is_complete = True if el[9] == 1 else False
-            stage = el[10]
-            tournament = Tournament.from_query_result(id, title, number_participant,format, date,prize,
-                                                      game_type, winner, creator, is_complete, stage)
+            id = el[0]
+            title = el[1]
+            number_participant = el[2]
+            t_format = el[3]
+            match_format = el[4]
+            date = el[5]
+            prize = el[6]
+            game_type = el[7]
+            winner = 'Not finished yet' if el[8] is None else el[8]
+            creator = user_service.get_user_full_name_by_id(el[9])
+            is_complete = True if el[10] == 1 else False
+            stage = el[11]
+            tournament = Tournament.from_query_result(id, title, number_participant, t_format,
+                match_format, date,prize, game_type, winner, creator, is_complete, stage)
 
-            # tournament_dict = {
-            #     'id': el[0],
-            #     'title': el[1],
-            #     'number participant': el[2],
-            #     'format': el[3],
-            #     'date': el[4],
-            #     'prize': el[5],
-            #     'game type': el[6],
-            #     'winner': 'Not finished yet' if el[7] is None else el[7],
-            #     'user creator': user_creator}
-            # result.append(tournament_dict)
             result.append(tournament)
 
     return result
@@ -165,7 +163,7 @@ def get_tournaments(sort: str | None, status: str):
 
 
 def complete_tournament(tournament_title: str):
-    update_query('UPDATE match_score_db.tournaments SET is_complete = 1 WHERE title = ?',
+    update_query('UPDATE match_score_db.tournaments SET is_complete = 1, stage = 1 WHERE title = ?',
                  (tournament_title, ))
 
 
@@ -186,31 +184,33 @@ def enough_participants(tournament: Tournament):
         return True
 
 
-def get_unfinished_tournaments():
-    row_data = read_query(sql = '''SELECT id, title, number_participants, format, date, prize, 
-    game_type, winner, users_creator_id, is_complete, stage FROM tournaments 
-    WHERE IS NULL(winner)''')
+def get_unfinished_tournaments() -> list[Tournament] | None:
+    row_data = read_query(sql = '''SELECT id, title, number_participants, t_format, 
+    match_format, date, prize, game_type, winner, users_creator_id, is_complete, stage 
+    FROM tournaments WHERE winner = "Not finished yet"''')
 
     result = []
     for el in row_data:
-        if el[8] == 1:
-            id= el[0]
-            title= el[1]
-            number_participant= el[2]
-            format= el[3]
-            date= el[4]
-            prize= el[5]
-            game_type= el[6]
-            winner= 'Not finished yet' if el[7] is None else el[7]
-            creator = user_service.get_user_full_name_by_id(el[8])
-            is_complete = True if el[9] == 1 else False
-            stage = el[10]
-            tournament = Tournament.from_query_result(id, title, number_participant,format, date,prize,
-                                                      game_type, winner, creator, is_complete, stage)
+        if el[8] == 'Not finished yet' and el[10] == 1:
+            id = el[0]
+            title = el[1]
+            number_participant = el[2]
+            t_format = el[3]
+            match_format = el[4]
+            date = el[5]
+            prize = el[6]
+            game_type = el[7]
+            winner = 'Not finished yet' if el[8] is None else el[8]
+            creator = user_service.get_user_full_name_by_id(el[9])
+            is_complete = True if el[10] == 1 else False
+            stage = el[11]
+            tournament = Tournament.from_query_result(id, title, number_participant, t_format,
+                match_format, date, prize, game_type, winner, creator, is_complete, stage)
             result.append(tournament)
+
+    if len(result) == 0:
+        return None
     return result
-
-
 
 
 
@@ -219,58 +219,70 @@ def get_unfinished_tournaments():
 
 def tournaments_stage():
     all_tournaments = get_unfinished_tournaments()
-    for tournament in all_tournaments:
-        participants = [get_participant(tournament, tournament.stage)]
+    list_len = len(all_tournaments)
+    for i in range(list_len):
+        tournament = all_tournaments[i]
 
-        participant_1 = random.choice(participants)
-        participants.remove(participant_1)
-        participant_2 = random.choice(participants)
-        participants.remove(participant_2)
+        participants_list = get_participant(tournament, tournament.stage)
+        number_matches = len(participants_list) // 2
+        for t_match in range(1, number_matches + 1):
 
-    # match
-        t_format = tournament.format
-        game_type = tournament.game_type
-        stage_date = tournament.date + timedelta(days=1)
-        tournament_name = tournament.title
-        new_stage = tournament.stage + 1
+            participant_1 = random.choice(participants_list)
+            participant_1_name = participant_1['name']
+            participants_list.remove(participant_1)
 
-        match_service.create_match(t_format, game_type, participant_1, participant_2, stage_date, tournament_name)
+            participant_2 = random.choice(participants_list)
+            participant_2_name = participant_2['name']
+            participants_list.remove(participant_2)
+        # set a match
+            match_format = tournament.match_format
+            game_type = tournament.game_type
+            stage_date = tournament.date + timedelta(days=1)
+            t_title = tournament.title
+            current_stage = tournament.stage
+            stage = current_stage
+            match = match_service.create_match(match_format, game_type, participant_1_name,
+                                   participant_2_name, stage_date, t_title, stage)
 
+            # update_player_stage(participant_1, participant_1.stage)
+            # update_player_stage(participant_2, participant_2.stage)
 
-
-
-def play_tournament():
-    today = date_service.current_date()
-
-    while match_service.check_for_unfinished_matches(today):
-        tournaments_stage()
-        match_service.play_match(today))
-        update_query(f'UPDATE tournaments SET stage = {new_stage} WHERE title = {tournament.title}')
-
-
-        if tournament.game_type == 'one on one':
-
-        else:
-            pass
-
+        new_stage = int(tournament.stage) + 1
+        title = tournament.title
+        update_query('UPDATE tournaments SET stage = ? WHERE title = ?',
+                     (new_stage, title))
 
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+# number_matches = int(tournament.number_participants // 2)
+# for t_match in range(1, number_matches + 1):
+#     participants_list = get_participant(tournament, tournament.stage)
+#
+#     participant_1 = random.choice(participants_list)
+#     participant_1_name = participant_1['name']
+#
+#     participant_2 = random.choice(participants_list)
+#     participant_2_name = participant_2['name']
+#
+#     # set a match
+#     match_format = tournament.match_format
+#     game_type = tournament.game_type
+#     stage_date = tournament.date + timedelta(days=1)
+#     t_title = tournament.title
+#     current_stage = tournament.stage
+#     stage = current_stage + 1
+#     match = match_service.create_match(match_format, game_type, participant_1_name,
+#                                        participant_2_name, stage_date, t_title, stage)
+#
+#     participants_list.remove(participant_1)
+#     participants_list.remove(participant_2)
+#
+# current_stage = tournament.stage
+# new_stage = current_stage + 1
+# update_query(f'UPDATE tournaments SET stage = {new_stage} WHERE title = {tournament.title}')
+#
 
 

@@ -30,7 +30,7 @@ def set_specific_date(new_date: str):
 
 # play upcoming matches before this date
     new_date = datetime.strptime(new_date, "%Y-%m-%d").date()
-    match_service.play_match(new_date)
+    match_service.play_match_one_on_one(new_date)
 
 # set the new date
     result = date_service.add_date(new_date)

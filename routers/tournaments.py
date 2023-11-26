@@ -12,9 +12,11 @@ tournaments_router = APIRouter(prefix='/tournaments', tags=['Tournaments'])
 
 
 'VIEW ALL TOURNAMENTS'
-@tournaments_router.get('/')
-def view_all_tournaments(sort: str = Query(description='sort by date: asc / desc', default='asc'),
-                        status: str = Query(description='filter by: all / played / upcoming', default='all')):
+@tournaments_router.post('/')
+def view_all_tournaments(sort: str = Form(..., description="Select an option",
+                                  enum=['asc', 'desc']),
+                        status: str = Form(..., description="Select an option",
+                                  enum=['all', 'played', 'upcoming'])):
 
     result = tournament_service.get_tournaments(sort, status)
     return result
@@ -36,8 +38,10 @@ def create_tournament(token: str = Header(),
                       title: str = Query(min_length=5),
                       number_participants: int = Form(..., description="Select an option",
                                             enum=[4, 8, 16, 32, 64, 128]),
-                      format: str = Form(..., description="Select an option",
+                      t_format: str = Form(..., description="Select an option",
                                             enum=['knockout', 'league']),
+                      match_format: str = Form(..., description='Select an option',
+                                               enum=['time limit', 'score limit']),
                       game_type: str = Form(..., description="Select an option",
                                             enum=['one on one', 'team game']),
                       date: str = Query(description='write date in format yyyy-mm-dd'),
@@ -60,7 +64,7 @@ def create_tournament(token: str = Header(),
 # creating new tournament
     date = datetime.strptime(date, "%Y-%m-%d").date()
     new_tournament = tournament_service.create_tournament(
-        title, number_participants, format, date, prize, game_type, creator)
+        title, number_participants, t_format, match_format, date, prize, game_type, creator)
 
     return new_tournament
 
@@ -72,7 +76,7 @@ def add_participant_to_tournament(title: str, participant: str, token):
     tournament = tournament_service.get_tournament_by_title(title)
     if not tournament:
         return JSONResponse(status_code=404, content=f'{title} not found')
-    if tournament.winner is not None:
+    if tournament.winner != 'Not finished yet':
         return f'the tournament {tournament.title} is finished.'
 
 # check if authenticated admin or creator
