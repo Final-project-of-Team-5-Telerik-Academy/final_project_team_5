@@ -93,3 +93,25 @@ def edit_is_active_in_player(is_active: int, full_name: str, is_connected: int) 
 
     update_query('''UPDATE players SET is_active = ? WHERE full_name = ? and is_connected = ?''',
                 (is_active, full_name, is_connected))
+    
+    
+def edit_is_active_in_player_by_id(id: int) -> Player:
+    ''' Used for editing is_active in a player.
+
+    Returns:
+        - Edited player information
+    '''
+
+    is_active = 1
+    update_query('''UPDATE players SET is_active = ? WHERE id = ? ''',
+                (is_active, id))
+    
+def back_is_active_in_player_by_id(id: int) -> Player:
+    ''' Used for editing is_active in a player.
+
+    Returns:
+        - Edited player information
+    '''
+    is_active = 0
+    update_query('''UPDATE players SET is_active = ? WHERE id = ? ''',
+                (is_active, id))
