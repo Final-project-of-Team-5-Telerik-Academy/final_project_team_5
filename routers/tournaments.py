@@ -161,7 +161,7 @@ def delete_tournament_by_title(title: str, token: str):
 
 
 IF KNOCKOUT:
-    number_of_tp = [4, 8, 16, 32, 64, 128] == circles(2, 3, 4, 5, 6, 7)
+    number_of_tp = [4, 8, 16, 32, 64, 128] == stage(2, 3, 4, 5, 6, 7)
         
     # choose points range
         points_range = [0, 100]

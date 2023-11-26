@@ -16,6 +16,7 @@ def add_date(date):
     return {f'The current date is set to {date}'}
 
 
+
 def date_is_in_future(new_date):
     today = current_date()
     date = datetime.strptime(new_date, "%Y-%m-%d").date()

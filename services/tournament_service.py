@@ -1,19 +1,21 @@
 from data.database import insert_query, read_query, update_query
 from fastapi.responses import JSONResponse
-from datetime import date
+from datetime import date, timedelta
 from my_models.model_user import User
 from my_models.model_player import Player
 from my_models.model_team import Team
 from my_models.model_tournament import Tournament
-from services import date_service
-from services import user_service
+from services import date_service, user_service, match_service, date_service
+import random
+
+
 
 def create_tournament(title: str, number_participants: int, format: str,
-                      date: date, prize: int, game_type: str, creator: User):
+                      date: date, prize: int, game_type: str, creator: User, stage=1):
 
     generated_tournament = insert_query(
-        '''INSERT INTO tournaments (title, number_participants, format, date, prize, users_creator_id, game_type)
-        VALUE (?, ?, ?, ?, ?, ?, ?)''',(title, number_participants, format, date, prize, creator.id, game_type))
+        '''INSERT INTO tournaments (title, number_participants, format, date, prize, users_creator_id, game_type, stage)
+        VALUE (?, ?, ?, ?, ?, ?, ?, ?)''',(title, number_participants, format, date, prize, creator.id, game_type, stage))
 
     result = {'id': generated_tournament,
               'title': title,
@@ -60,11 +62,13 @@ def add_player(player: Player, tournament: Tournament):
     return f'{player.full_name} joined the {tournament.title}'
 
 
+
 def add_team(team: Team, tournament: Tournament):
     insert_query('''INSERT INTO tournaments_teams (teams_id, teams_name, tournaments_id, tournament_title) 
                 VALUES (?, ?, ?, ?)''', (team.id, team.team_name, tournament.id, tournament.title))
 
     return f'{team.full_name} joined the {tournament.title}'
+
 
 
 def is_player_in_tournament(player_id: int, tournament_id: int):
@@ -79,14 +83,22 @@ def is_player_in_tournament(player_id: int, tournament_id: int):
 
 
 
-def get_participant(tournament: Tournament):
+def get_participant(tournament: Tournament, stage: int | None = None):
     participants = []
     if tournament.game_type == 'one on one':
-        players_data = read_query('''SELECT p.id, p.full_name, p.country, p.sports_club FROM players p 
+        sql = f'''SELECT p.id, p.full_name, p.country, p.sports_club FROM players p 
                                     LEFT JOIN tournaments_players tp ON p.id = tp.players_id
-                                    WHERE tp.tournaments_id = ?''', (tournament.id, ))
+                                    WHERE tp.tournaments_id = {tournament.id}'''
+        if stage:
+            where_clause = f' AND tp.stage = {stage}'
+            sql.join(where_clause)
+
+        players_data = read_query(sql)
+
         for row in players_data:
             participants.append({'id': row[0], 'name': row[1], 'country': row[2], 'sports club': row[3]})
+
+
 
     elif tournament.game_type == 'team game':
         teams_data = read_query('''SELECT t.id, t.team_name FROM teams t 
@@ -100,9 +112,9 @@ def get_participant(tournament: Tournament):
 
 
 
-def get_tournaments(sort: str, status: str):
+def get_tournaments(sort: str | None, status: str):
     sql = '''SELECT id, title, number_participants, format, date, prize, 
-    game_type, winner, users_creator_id, is_complete FROM tournaments '''
+    game_type, winner, users_creator_id, is_complete, stage FROM tournaments '''
     today = date_service.current_date()
     where_clause = []
 
@@ -121,18 +133,32 @@ def get_tournaments(sort: str, status: str):
     result = []
     for el in row_data:
         if el[8] == 1:
-            user_creator = user_service.get_user_full_name_by_id(el[8])
-            tournament_dict = {
-                'id': el[0],
-                'title': el[1],
-                'number participant': el[2],
-                'format': el[3],
-                'date': el[4],
-                'prize': el[5],
-                'game type': el[6],
-                'winner': 'Not finished yet' if el[7] is None else el[7],
-                'user creator': user_creator}
-            result.append(tournament_dict)
+            id= el[0]
+            title= el[1]
+            number_participant= el[2]
+            format= el[3]
+            date= el[4]
+            prize= el[5]
+            game_type= el[6]
+            winner= 'Not finished yet' if el[7] is None else el[7]
+            creator = user_service.get_user_full_name_by_id(el[8])
+            is_complete = True if el[9] == 1 else False
+            stage = el[10]
+            tournament = Tournament.from_query_result(id, title, number_participant,format, date,prize,
+                                                      game_type, winner, creator, is_complete, stage)
+
+            # tournament_dict = {
+            #     'id': el[0],
+            #     'title': el[1],
+            #     'number participant': el[2],
+            #     'format': el[3],
+            #     'date': el[4],
+            #     'prize': el[5],
+            #     'game type': el[6],
+            #     'winner': 'Not finished yet' if el[7] is None else el[7],
+            #     'user creator': user_creator}
+            # result.append(tournament_dict)
+            result.append(tournament)
 
     return result
 
@@ -158,6 +184,87 @@ def enough_participants(tournament: Tournament):
     difference = tournament.number_participants - len(participants)
     if difference <= 0:
         return True
+
+
+def get_unfinished_tournaments():
+    row_data = read_query(sql = '''SELECT id, title, number_participants, format, date, prize, 
+    game_type, winner, users_creator_id, is_complete, stage FROM tournaments 
+    WHERE IS NULL(winner)''')
+
+    result = []
+    for el in row_data:
+        if el[8] == 1:
+            id= el[0]
+            title= el[1]
+            number_participant= el[2]
+            format= el[3]
+            date= el[4]
+            prize= el[5]
+            game_type= el[6]
+            winner= 'Not finished yet' if el[7] is None else el[7]
+            creator = user_service.get_user_full_name_by_id(el[8])
+            is_complete = True if el[9] == 1 else False
+            stage = el[10]
+            tournament = Tournament.from_query_result(id, title, number_participant,format, date,prize,
+                                                      game_type, winner, creator, is_complete, stage)
+            result.append(tournament)
+    return result
+
+
+
+
+
+
+"=== PLAY TOURNAMENT ==="
+
+def tournaments_stage():
+    all_tournaments = get_unfinished_tournaments()
+    for tournament in all_tournaments:
+        participants = [get_participant(tournament, tournament.stage)]
+
+        participant_1 = random.choice(participants)
+        participants.remove(participant_1)
+        participant_2 = random.choice(participants)
+        participants.remove(participant_2)
+
+    # match
+        t_format = tournament.format
+        game_type = tournament.game_type
+        stage_date = tournament.date + timedelta(days=1)
+        tournament_name = tournament.title
+        new_stage = tournament.stage + 1
+
+        match_service.create_match(t_format, game_type, participant_1, participant_2, stage_date, tournament_name)
+
+
+
+
+def play_tournament():
+    today = date_service.current_date()
+
+    while match_service.check_for_unfinished_matches(today):
+        tournaments_stage()
+        match_service.play_match(today))
+        update_query(f'UPDATE tournaments SET stage = {new_stage} WHERE title = {tournament.title}')
+
+
+        if tournament.game_type == 'one on one':
+
+        else:
+            pass
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
