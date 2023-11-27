@@ -4,7 +4,7 @@ from my_models.model_director_requests import DirectorRequests
 
 
 def id_exists(id: int, table_name: str) -> bool:
-    ''' Used to check if the id exists in the GIVEN table(users, players, matches, tournaments, admin_requests) in the database.
+    ''' Used to check if the id exists in the GIVEN table(users, players, matches, tournaments, admin_requests, director_requests) in the database.
 
     Returns:
         - True/False
