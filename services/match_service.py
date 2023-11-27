@@ -145,7 +145,8 @@ def play_match_one_on_one(new_date: date):
                 (winner_id, winner_name, tournament_id, t_title, stage))
 
         # prize for winner
-            if len(last_players(t_title)) == 1:
+            last = last_players(t_title)
+            if len(last) == 1:
                 finish_tournament(winner_name, t_title)
 
 
@@ -157,6 +158,10 @@ def play_match_one_on_one(new_date: date):
 
 
 def last_players(t_title: str):
+    stage_data = read_query('''SELECT stage FROM tournaments_players 
+        WHERE tournament_title = ? ORDER BY stage DESC LIMIT 1''', (t_title,))
+    last_stage = stage_data[0][0]
+
     data = read_query('''SELECT player_name FROM tournaments_players 
         WHERE tournament_title = ? ORDER BY stage DESC LIMIT 1''',
         (t_title,))
@@ -164,11 +169,14 @@ def last_players(t_title: str):
     return data[0]
 
 
+
 def finish_tournament(winner: str, t_title: str):
     update_query('''UPDATE tournaments SET winner = ? WHERE title = ?''',
                  (winner, t_title))
     update_query('UPDATE players_statistics SET tournament_trophy = 1 WHERE player_name = ?',
                  (winner, ))
+
+
 
 
 def update_single_player_statistics(player_id: int, player_name: str, opponent_name: str, win: int,
