@@ -1,10 +1,7 @@
 from fastapi import APIRouter, Header, Query, Form
-from services import shared_service
-from authentication.authenticator import get_user_or_raise_401
-from my_models.model_user import User
-from fastapi.responses import JSONResponse
 from services import player_service
 from my_models import countries, sport_clubs
+
 
 players_router = APIRouter(prefix='/players', tags={'Players'})
 
@@ -13,7 +10,7 @@ players_router = APIRouter(prefix='/players', tags={'Players'})
 def create_player(full_name: str = Query(..., description='Enter full name of player:'),
                   country: str = Form(..., description='Choose a country:',example='Bulgaria', enum=countries.countries),
                   sports_club: str = Form(..., description='Choose a club sport:', example='Tenis Stars', enum=sport_clubs.sport_clubs),
-                  x_token: str = Header(default=None)):
+                  x_token: str = Header()):
     ''' Used for creating a new player by a director or admin.
 
     Args:
@@ -26,61 +23,46 @@ def create_player(full_name: str = Query(..., description='Enter full name of pl
         - Created player information
     '''
 
-    if x_token == None:
-        return JSONResponse(status_code=401, content='You must be logged in and be an admin to be able to create a player.')    
-    
-    user = get_user_or_raise_401(x_token)
-    
-    if User.is_director(user):
-        created_player = player_service.create_player(full_name, country, sports_club)
-    elif User.is_admin(user):
-        created_player = player_service.create_player(full_name, country, sports_club)
-    else:
-        return JSONResponse(status_code=401, content='You must be an admin or a director to be able to create a player.')
-
-    return created_player
+    return player_service.create_player_account(full_name, country, sports_club, x_token)
 
 
 @players_router.get('/', description= 'Show all players:')
-def find_all_players(x_token: str = Header(default=None, description='Your identification token:')):
+def find_all_players(x_token: str = Header(..., description='Your identification token:')):
+    ''' Used to get all player accounts.
     
-    if x_token is None:
-        return JSONResponse(status_code=401, content='You must be logged in to view the list of players.')
+    Args:
+        - JWT token(Header)
     
-    user = get_user_or_raise_401(x_token)
+    Returns:
+        - list of all player accounts
+    '''
 
-    if User.is_spectator(user):
-        list_of_players = player_service.get_all_players()
-    elif User.is_player(user):
-        list_of_players = player_service.get_all_players()
-    elif User.is_director(user):
-        list_of_players = player_service.get_all_players()
-    elif User.is_admin(user):
-        list_of_players = player_service.get_all_players()
-    else: 
-        return JSONResponse(status_code=401, content='Unrecognized credentials.')
-
-    return list_of_players
+    return player_service.find_all_player_accounts(x_token)
 
 
 @players_router.get('/id', description='Find player:')
-def find_player_by_id(id:int = Query(..., description='Enter id of the player:'), x_token: str = Header(default=None)):
+def find_player_by_id(id:int = Query(..., description='Enter id of the player:'), x_token: str = Header()):
+    ''' Used to get a player account by id.
     
-    if x_token is None:
-        return JSONResponse(status_code=401, content='You must be logged in to see the players information.')
+    Args:
+        - JWT token(Header)
     
-    user = get_user_or_raise_401(x_token)
+    Returns:
+        - player account
+    '''
 
-    if not shared_service.id_exists(id, 'players'):
-            return JSONResponse(status_code=404, content=f'Player with id: {id} does not exist.')
-    if User.is_spectator(user):
-        player = player_service.get_player_by_id(id)
-    elif User.is_player(user):
-        player = player_service.get_player_by_id(id)
-    elif User.is_director(user):
-        player = player_service.get_player_by_id(id) 
-    elif User.is_admin(user):
-        player = player_service.get_player_by_id(id)
-    else: 
-        return JSONResponse(status_code=401, content='Unrecognized credentials.')
-    return player
+    return player_service.find_player_account_by_id(id, x_token)
+    
+
+@players_router.delete('/id', description='Delete player:')
+def delete_player_by_id(id:int = Query(..., description='Enter id of the player you want to delete:'), x_token: str = Header()):
+    ''' Used to delete a player account by id.
+    
+    Args:
+        - JWT token(Header)
+    
+    Returns:
+        - deleted player
+    '''
+
+    return player_service.delete_player_account_by_id(id, x_token)

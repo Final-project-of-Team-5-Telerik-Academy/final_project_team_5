@@ -1,5 +1,6 @@
 from data.database import read_query, insert_query
 from my_models.model_admin_requests import AdminRequests
+from my_models.model_director_requests import DirectorRequests
 
 
 def id_exists(id: int, table_name: str) -> bool:
@@ -15,7 +16,7 @@ def id_exists(id: int, table_name: str) -> bool:
             (id,)))
 
 
-def id_exists_requests(id: int):
+def id_exists_admin_requests(id: int):
     ''' Used to check if the id exists in admin_requests in the database.
 
     Returns:
@@ -27,6 +28,38 @@ def id_exists_requests(id: int):
         (id,))
 
     result = next((AdminRequests.from_query_result(*row, ) for row in data), None)
+
+    return result
+
+
+def id_exists_admin_requests_full_info(id: int):
+    ''' Used to check if the id exists in admin_requests in the database.
+
+    Returns:
+        - admin_request
+    '''
+
+    data = read_query(
+        f'SELECT id, type_of_request, players_id, users_id, status FROM admin_requests WHERE id = ?',
+        (id,))
+
+    result = next((AdminRequests.from_query_result(*row, ) for row in data), None)
+
+    return result
+
+
+def id_exists_director_requests(id: int):
+    ''' Used to check if the id exists in director_requests in the database.
+
+    Returns:
+        - status from director_requests
+    '''
+
+    data = read_query(
+        f'SELECT id, full_name, country, sports_club, users_id, status FROM director_requests WHERE id = ?',
+        (id,))
+
+    result = next((DirectorRequests.from_query_result(*row, ) for row in data), None)
 
     return result
 
@@ -71,6 +104,25 @@ def user_promotion_request_exists(user_id: int):
     return result
 
 
+def director_request_exists(user_id: int):
+    ''' Used to check if the id exists in admin_requests in the database.
+
+    Returns:
+        - Status from admin_requests if the user_id exists, None otherwise.
+    '''
+
+    status = 'pending'
+
+    result = read_query(
+        'SELECT id, full_name, country, sports_club, users_id, status FROM director_requests WHERE users_id = ? and status = ?',
+        (user_id, status)
+    )
+
+    result = next((DirectorRequests.from_query_result(*row, ) for row in result), None)
+
+    return result
+
+
 def players_id_exists(players_id: int, table_name: str) -> bool:
     ''' Used to check if the players_id is already connected to another user in the database.'''
 
@@ -100,10 +152,17 @@ def full_name_exists(full_name: str, table_name: str) -> bool:
             (full_name,)))
 
 
-def delete_request(id: int):
+def delete_admin_request(id: int):
     ''' Used for deleting requests from the database.'''
 
     insert_query('''DELETE FROM admin_requests WHERE id = ?''',
+                 (id,))
+    
+
+def delete_director_request(id: int):
+    ''' Used for deleting director requests from the database.'''
+
+    insert_query('''DELETE FROM director_requests WHERE id = ?''',
                  (id,))
 
 

@@ -9,13 +9,14 @@ class Player(BaseModel):
     is_active: int | None = 0
     is_connected: int | None = 0
     teams_id: int | None = None
+    blocked_players_id: int | None = None
 
     @classmethod
-    def from_query_result(cls, id, full_name, country, sports_club, is_active, is_connected, teams_id):
+    def from_query_result(cls, id, full_name, country, sports_club, is_active, is_connected, teams_id, blocked_players_id):
         ''' When query is used in another function.
 
         Returns:
-            - id, full_name, country, sports_club, is_active, is_connected, teams_id
+            - id, full_name, country, sports_club, is_active, is_connected, teams_id, blocked_players_id
         '''
 
         return cls(
@@ -25,6 +26,7 @@ class Player(BaseModel):
             sports_club=sports_club,
             is_active=is_active,
             is_connected=is_connected,
-            teams_id=teams_id
+            teams_id=teams_id,
+            blocked_players_id=blocked_players_id
         )
     
