@@ -1,7 +1,7 @@
 from data.database import read_query, insert_query, update_query
 from my_models.model_user import User
 from my_models.model_admin_requests import AdminRequests
-
+from my_models.model_blocked_players import BlockedPlayers, Status
 
 _SEPARATOR = ';'
 
@@ -143,3 +143,33 @@ def edit_requests_promotion_status(request_status: str, type_of_request: str, id
 
     update_query('''UPDATE admin_requests SET status = ? WHERE type_of_request = ? and users_id = ?''',
                 (request_status, type_of_request, id))
+    
+ 
+def insert_blocked_player(players_id: int, ban_status: str) -> BlockedPlayers | None:
+    generated_id = insert_query(
+        'INSERT INTO blocked_players(players_id, ban_status) VALUES (?, ?)',
+        (players_id, ban_status)
+    )
+
+    return BlockedPlayers(id=generated_id, players_id=players_id, ban_status=ban_status)
+
+
+def get_all_blocked_players() -> BlockedPlayers | None:
+    ''' Search in the database and creates a list of all blocked players. 
+    
+    Returns:
+        - a list of all blocked players(id, players_id, ban_status)
+    '''
+
+    data = read_query('SELECT id, players_id, ban_status FROM blocked_players')
+
+    result = (BlockedPlayers.from_query_result(*row) for row in data)
+
+    return result
+
+
+def remove_blocked_player(players_id: int):
+    ''' Used for removing a blocked player from the database.'''
+
+    insert_query('''DELETE FROM blocked_players WHERE players_id = ?''',
+                 (players_id,))
