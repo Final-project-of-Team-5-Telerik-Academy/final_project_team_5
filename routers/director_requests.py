@@ -53,7 +53,7 @@ def find_director_request_by_id(id: int = Query(..., description='Enter ID of th
     return user_service.get_director_request_by_id(id, x_token)
     
 
-@director_requests_router.delete('/', description="Please fill the form to delete your director request:")
+@director_requests_router.delete('/id', description="Please fill the form to delete your director request:")
 def delete_director_request(id: int = Query(..., description='Enter ID of the director request you want to delete:'), 
                 x_token: str = Header()
                 ):

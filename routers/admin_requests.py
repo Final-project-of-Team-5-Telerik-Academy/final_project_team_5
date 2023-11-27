@@ -52,7 +52,7 @@ def find_admin_request_by_id(id: int = Query(..., description='Enter ID of the r
     return user_service.get_admin_request_by_id(id, x_token)
     
 
-@admin_requests_router.delete('/', description="Please fill the form to delete your request:")
+@admin_requests_router.delete('/id', description="Please fill the form to delete your request:")
 def delete_admin_request(id: int = Query(..., description='Enter ID of the request you want to delete:'), 
                 x_token: str = Header()):
     ''' Used for deleting an already created request for connection or promotion if the status is 'pending'.

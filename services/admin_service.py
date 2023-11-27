@@ -6,7 +6,7 @@ from authentication.authenticator import get_user_or_raise_401
 from services import shared_service
 from services import player_service
 from services import email_service
-
+from my_models.model_blocked_players import BlockedPlayers
 
 
 _SEPARATOR = ';'
@@ -347,3 +347,112 @@ def edit_user_by_id(id: int, new_role: str, command: str, players_id: int , x_to
     else:
         return JSONResponse(status_code=400, content="Unrecognized request.")
     
+
+def insert_blocked_player(players_id: int, ban_status: str) -> BlockedPlayers | None:
+    generated_id = insert_query(
+        'INSERT INTO blocked_players(players_id, ban_status) VALUES (?, ?)',
+        (players_id, ban_status)
+    )
+
+    return BlockedPlayers(id=generated_id, players_id=players_id, ban_status=ban_status)
+
+
+def get_all_blocked_players() -> BlockedPlayers | None:
+    ''' Search in the database and creates a list of all blocked players. 
+    
+    Returns:
+        - a list of all blocked players(id, players_id, ban_status)
+    '''
+
+    data = read_query('SELECT id, players_id, ban_status FROM blocked_players')
+
+    result = (BlockedPlayers.from_query_result(*row) for row in data)
+
+    return result
+
+
+def remove_blocked_player(players_id: int):
+    ''' Used for removing a blocked player from the database.'''
+
+    insert_query('''DELETE FROM blocked_players WHERE players_id = ?''',
+                 (players_id,))
+
+
+def block_player_by_id(players_id: int, ban_status: str, x_token: str):
+    ''' Used for blockin players. Only admins can delete it.
+
+    Args:
+        - players_id: int(URL link)
+        - ban_status: str
+        - JWT token
+    
+    Returns:
+        - Blocked player
+    '''
+    
+    if x_token == None:
+        return JSONResponse(status_code=401, content='You must be logged in and be an admin to be able to block a player.')
+    
+    user = get_user_or_raise_401(x_token)
+    
+    if not User.is_admin(user):
+        return JSONResponse(status_code=401, content='You must be an admin to be able to block a player.')
+    
+    if not shared_service.id_of_player_exists(players_id):
+        return JSONResponse(status_code=404, content=f'Player with id: {players_id} does not exist.')
+    
+    if not shared_service.id_of_blocked_player_exists(players_id):
+        insert_blocked_player(players_id, ban_status)
+    else:
+        return JSONResponse(status_code=404, content = f'Player with id: {players_id} already exists.')
+    
+    player_service.edit_is_active_in_player_by_id(players_id)
+
+    return {'message': 'Player is blocked successfully.'}
+
+
+def find_all_blocked_players(x_token: str):
+    ''' Used for finding all blocked players.
+
+    Args:
+        - JWT token
+    
+    Returns:
+        - list of blocked players
+    '''
+
+    if x_token == None:
+        return JSONResponse(status_code=401, content='You must be logged in and be an admin to see the list of blocked players.')
+    
+    user = get_user_or_raise_401(x_token)
+    
+    if User.is_admin(user):
+        list_of_players = get_all_blocked_players()
+    else: 
+        return JSONResponse(status_code=401, content='You must be an admin to see the list of blocked players.')
+
+    return list_of_players
+
+
+def remove_block_of_player(players_id: int, x_token: str):
+    ''' Used for deleting a player from the blocked_players database. Only admins can do it.
+
+    Returns:
+        - Player is unblocked.
+    '''
+
+    if x_token == None:
+        return JSONResponse(status_code=401, content='You must be logged in and be an admin to be able to unblock a player.')    
+    
+    user = get_user_or_raise_401(x_token)
+    
+    if not User.is_admin(user):
+        return JSONResponse(status_code=401, content='You must be an admin to be able to unblock a player.')
+    
+    if not shared_service.id_of_blocked_player_exists(players_id):
+        return JSONResponse(status_code=404, content=f"Player with id {players_id} is not blocked.")
+    
+    remove_blocked_player(players_id)
+    player_service.back_is_active_in_player_by_id(players_id)
+    
+    return {'Message': 'Player is unblocked.'}

@@ -170,3 +170,21 @@ def get_creator_full_name(table: str, title: str):
     # get creator full name from tables: Matches and Tournaments
     creator_name = read_query(f'SELECT users_creator_id FROM {table} WHERE title = ?', (title, ))
     return creator_name if creator_name else None
+
+
+def id_of_player_exists(id: int) -> bool:
+    ''' Used to check if the id is already connected to another user in the database.'''
+
+    return any(
+        read_query(
+            f'SELECT id FROM players WHERE id = ?',
+            (id,)))
+
+def id_of_blocked_player_exists(players_id: int) -> bool:
+    ''' Used to check if the players_id is already in the database.'''
+
+    return any(
+        read_query(
+            f'SELECT id FROM blocked_players WHERE players_id = ?',
+            (players_id,)))
+

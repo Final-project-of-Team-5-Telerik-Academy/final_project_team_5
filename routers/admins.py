@@ -47,8 +47,7 @@ def edit_users(id: int = Query(..., description='Enter ID of user:'),
 
 @admins_router.delete('/users', description="Delete user's account:")
 def delete_user(id: int = Query(..., description='Enter ID of the user you want to delete:'), 
-                x_token: str = Header()
-                ):
+                x_token: str = Header()):
     ''' Used for deleting a user through user.id. Only admins can delete it.
 
     Args:
@@ -60,3 +59,47 @@ def delete_user(id: int = Query(..., description='Enter ID of the user you want 
     '''
 
     return admin_service.delete_users_account(id, x_token)
+
+
+@admins_router.post('/blocked/players', description='Please enter the id of the player you want to block:')
+def blocked_players(players_id: int = Query(..., description='Enter ID of the player you want to block:'),
+                 ban_status: str = Form(..., description='Choose ban status:',example='temporary', enum = ['temporary', 'permanent']),
+                 x_token: str = Header()):
+    ''' Used for blockin players. Only admins can delete it.
+
+    Args:
+        - players_id: int(URL link)
+        - ban_status: str
+        - JWT token
+    
+    Returns:
+        - Blocked player
+    '''
+    
+    return admin_service.block_player_by_id(players_id, ban_status, x_token)
+
+
+@admins_router.get('/blocked/players', description= 'Show all blocked players:')
+def find_all_blocked_players(x_token: str = Header()):
+    ''' Used for finding all blocked players.
+
+    Args:
+        - JWT token
+    
+    Returns:
+        - list of blocked players
+    '''
+
+    return admin_service.find_all_blocked_players(x_token)
+
+
+@admins_router.delete('/blocked/players', description="Remove player's block:")
+def remove_players_block(players_id: int = Query(..., description='Enter ID of the blocked player you want to unblock:'), 
+                x_token: str = Header()):
+    ''' Used for deleting a player from the blocked_players database. Only admins can do it.
+
+    Returns:
+        - Player is unblocked.
+    '''
+
+    return admin_service.remove_block_of_player(players_id, x_token)

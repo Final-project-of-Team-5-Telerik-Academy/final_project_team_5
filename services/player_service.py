@@ -234,3 +234,26 @@ def delete_player(id: int):
     
     insert_query('''DELETE FROM players WHERE id = ?''',
                  (id,))
+    
+    
+def edit_is_active_in_player_by_id(id: int) -> Player:
+    ''' Used for editing is_active in a player.
+
+    Returns:
+        - Edited player information
+    '''
+
+    is_active = 1
+    update_query('''UPDATE players SET is_active = ? WHERE id = ? ''',
+                (is_active, id))
+    
+    
+def back_is_active_in_player_by_id(id: int) -> Player:
+    ''' Used for editing is_active in a player.
+
+    Returns:
+        - Edited player information
+    '''
+    is_active = 0
+    update_query('''UPDATE players SET is_active = ? WHERE id = ? ''',
+                (is_active, id))
