@@ -236,3 +236,23 @@ def delete_team_by_id(id: int, x_token: str):
         return JSONResponse(status_code=401, content='You must be logged in and be an admin or a director and owner to be able to delete a team.')
         
     return {'Team is deleted.'}
+
+
+def get_team_by_name(name: str) -> Team | None:
+    ''' Used for getting a single team by team.name.
+
+    Args:
+        - team.id: int(URL link)
+
+    Returns:
+        - team
+    '''
+
+    team = read_query_additional('SELECT id, team_name, number_of_players, owners_id FROM teams where team_name = ?', (name,))
+
+    if team is None:
+        return JSONResponse(status_code=404, content=f'Team with name: {name} does not exist.')
+
+    actual = Team.from_query_result(*team)
+
+    return actual
