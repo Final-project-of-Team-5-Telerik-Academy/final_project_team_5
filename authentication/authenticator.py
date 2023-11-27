@@ -1,4 +1,5 @@
 from fastapi import HTTPException
+from fastapi.responses import JSONResponse
 from my_models.model_user import User
 from data.database import read_query
 import jwt
@@ -18,7 +19,8 @@ def get_user_or_raise_401(token: str) -> User:
         payload = is_authenticated(token)
         return find_by_email(payload['email'])
     except:
-        raise HTTPException(status_code=401)
+        # raise HTTPException(status_code=401)
+        return JSONResponse(status_code=401, content='Invalid credentials.')
     
 
 def find_by_email(email: str) -> User | None:
@@ -32,7 +34,7 @@ def find_by_email(email: str) -> User | None:
     '''
 
     data = read_query(
-        'SELECT id, full_name, email, password, gender, role, players_id FROM users WHERE email = ?',
+        'SELECT id, full_name, email, password, gender, role, players_id, is_verified, verification_code FROM users WHERE email = ?',
         (email,))
     
     return next((User.from_query_result(*row) for row in data), None)
@@ -49,7 +51,7 @@ def find_by_id(id: int) -> User | None:
     '''
 
     data = read_query(
-        'SELECT id, full_name, email, password, gender, role, players_id FROM users WHERE id = ?',
+        'SELECT id, full_name, email, password, gender, role, players_id, is_verified, verification_code FROM users WHERE id = ?',
         (id,))
 
     return next((User.from_query_result(*row) for row in data), None)

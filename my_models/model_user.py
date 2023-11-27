@@ -8,6 +8,10 @@ class Role:
     ADMIN = 'admin'
 
 
+class Verify:
+    VERIFIED = 1
+
+
 class LoginData(BaseModel):
     email: str
     password: str
@@ -21,6 +25,8 @@ class User(BaseModel):
     gender: str
     role: str | None = None
     players_id: int | None = None
+    is_verified: int | None = 0
+    verification_code: int | None = None
 
 
     def is_spectator(self):
@@ -61,14 +67,24 @@ class User(BaseModel):
         '''
 
         return self.role == Role.ADMIN
+    
+
+    def is_verified_account(self):
+        ''' Compares the user's account if it's verified through email.
+        
+        Returns:
+            - True/False
+        '''
+
+        return self.is_verified == Verify.VERIFIED
 
 
     @classmethod
-    def from_query_result(cls, id, full_name, email, password, gender, role, players_id):
+    def from_query_result(cls, id, full_name, email, password, gender, role, players_id, is_verified, verification_code):
         ''' When query is used in another function.
         
         Returns:
-            - id, full_name, email, password, gender, role, players_id
+            - id, full_name, email, password, gender, role, players_id, is_verified, verification_code
         '''
 
         return cls(
@@ -78,16 +94,18 @@ class User(BaseModel):
             password=password,
             gender=gender,
             role=role,
-            players_id=players_id
+            players_id=players_id,
+            is_verified=is_verified,
+            verification_code=verification_code
             )
     
 
     @classmethod
-    def from_query_result_no_password(cls, id, full_name, email, password, gender, role, players_id):
+    def from_query_result_no_password(cls, id, full_name, email, password, gender, role, players_id, is_verified, verification_code):
         ''' When User Model is shown in the response.
         
         Returns:
-            - id, full_name, email, password as '******', gender, role, players_id
+            - id, full_name, email, password as '******', gender, role, players_id, is_verified, verification_code
         '''
 
         return cls(
@@ -97,5 +115,7 @@ class User(BaseModel):
             password='******',
             gender=gender,
             role=role,
-            players_id=players_id
+            players_id=players_id,
+            is_verified='******',
+            verification_code='******'
             )
