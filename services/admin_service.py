@@ -154,11 +154,11 @@ def insert_blocked_player(players_id: int, ban_status: str) -> BlockedPlayers | 
     return BlockedPlayers(id=generated_id, players_id=players_id, ban_status=ban_status)
 
 
-def get_all_banned_players() -> BlockedPlayers | None:
-    ''' Search in the database and creates a list of all banned players. 
+def get_all_blocked_players() -> BlockedPlayers | None:
+    ''' Search in the database and creates a list of all blocked players. 
     
     Returns:
-        - a list of all banned players(id, players_id, ban_status)
+        - a list of all blocked players(id, players_id, ban_status)
     '''
 
     data = read_query('SELECT id, players_id, ban_status FROM blocked_players')
