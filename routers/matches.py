@@ -48,11 +48,12 @@ def create_match(token: str,
 
 # check if authenticated and role
     user = get_user_or_raise_401(token)
+    if not (User.is_director(user) or User.is_admin(user)):
+        return JSONResponse(status_code=403, content='Only Admin and Director can create a match')
+
     shared_service.check_date_format(date)
     date = datetime.strptime(date, "%Y-%m-%d").date()
 
-    if not (User.is_director(user) or User.is_admin(user)):
-        return JSONResponse(status_code=403, content='Only Admin and Director can create a match')
     if participant_1 == participant_2:
         return JSONResponse(status_code=400, content='Choose different players')
 

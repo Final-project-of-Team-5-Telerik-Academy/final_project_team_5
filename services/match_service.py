@@ -86,11 +86,13 @@ def check_create_player(player_name: str):
         is_active, is_connected = 0, 0
         teams_id, blocked_players_id = None, None
 
-        insert_query('''INSERT INTO players(full_name, country, 
+        generated_id = insert_query('''INSERT INTO players(full_name, country, 
             sports_club, is_active, is_connected, teams_id, blocked_players_id) 
             VALUES (?,?,?,?,?,?,?)''', (player_name, country, sports_club,
                                         is_active, is_connected, teams_id, blocked_players_id))
-        return {'warning': f'{player_name} is new to the system. We have created a profile for him but it needs to be completed'}
+
+        return Player.from_query_result(generated_id, player_name, country,
+                sports_club, is_active, is_connected, teams_id, blocked_players_id)
 
     elif existing_player.blocked_players_id == 1:
         return JSONResponse(status_code=400, content=f'Player {player_name} is blocked.')
