@@ -1,7 +1,8 @@
 from data.database import read_query, insert_query
 from my_models.model_admin_requests import AdminRequests
 from my_models.model_director_requests import DirectorRequests
-
+from fastapi.responses import JSONResponse
+import re
 
 def id_exists(id: int, table_name: str) -> bool:
     ''' Used to check if the id exists in the GIVEN table(users, players, matches, tournaments, admin_requests) in the database.
@@ -188,3 +189,9 @@ def id_of_blocked_player_exists(players_id: int) -> bool:
             f'SELECT id FROM blocked_players WHERE players_id = ?',
             (players_id,)))
 
+
+def check_date_format(date: str):
+# check format is correct    alternative: ^(0?[1-9]|[12][0-9]|3[01])[\/\-](0?[1-9]|1[012])[\/\-]\d{4}$
+    pattern = re.compile(r'^\d{4}[\/\-](0?[1-9]|1[012])[\/\-](0?[1-9]|[12][0-9]|3[01])$')
+    if not pattern.match(date):
+        return JSONResponse(status_code=400, content="The date must be in format 'yyyy-mm-dd' (2023-3-15)")

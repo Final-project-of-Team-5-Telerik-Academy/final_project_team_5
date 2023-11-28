@@ -239,19 +239,7 @@ def tournaments_stage():
 
 
 
-def play_tournament():
-    today = date_service.current_date()
 
-    while match_service.check_for_unfinished_matches(today):
-        tournaments_stage()
-        match_service.play_match(today))
-        update_query(f'UPDATE tournaments SET stage = {new_stage} WHERE title = {tournament.title}')
-
-
-        if tournament.game_type == 'one on one':
-
-        else:
-            pass
 
 
 
