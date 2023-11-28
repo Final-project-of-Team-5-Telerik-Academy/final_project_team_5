@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from services import  tournament_service, shared_service, match_service, team_service, player_service
 from authentication.authenticator import get_user_or_raise_401
 from my_models.model_user import User
+from my_models.model_tournament import sport_list
 from datetime import datetime
 
 
@@ -39,6 +40,7 @@ def create_tournament(token: str = Header(),
                       number_participants: int = Form(..., enum=[4, 8, 16, 32, 64, 128]),
                       t_format: str = Form(..., enum=['knockout', 'league']),
                       match_format: str = Form(..., enum=['time limit', 'score limit']),
+                      sport: str = Form(..., enum=sport_list),
                       game_type: str = Form(..., enum=['one on one', 'team game']),
                       date: str = Query(description='write date in format yyyy-mm-dd'),
                       prize: int = Query(gt=-1)):
@@ -53,14 +55,14 @@ def create_tournament(token: str = Header(),
     if tournament_service.get_tournament_by_title(title):
         return JSONResponse(status_code=400, content=f"The name '{title}' already exists.")
 
-    new_tournament = tournament_service.create_tournament(
-        title, number_participants, t_format, match_format, date, prize, game_type, creator)
+    new_tournament = tournament_service.create_tournament(title, number_participants,
+            t_format, match_format, sport, date, prize, game_type, creator)
     return new_tournament
 
 
 
 
-"ADD PARTICIPANTS TO TOURNAMENT"
+" 4. ADD PARTICIPANTS TO TOURNAMENT"
 @tournaments_router.put('/add/{t_title}/{participant}')
 def add_participant_to_tournament(title: str, participant: str, token):
     user = get_user_or_raise_401(token)
@@ -108,17 +110,6 @@ def add_participant_to_tournament(title: str, participant: str, token):
 
 
 
-
-"REMOVE PARTICIPANT"
-
-
-"UPDATE TOURNAMENT"
-
-
-
-
-
-
 " 5. DELETE A TOURNAMENT"
 @tournaments_router.delete('/{title}')
 def delete_tournament_by_title(title: str, token: str):
@@ -135,7 +126,27 @@ def delete_tournament_by_title(title: str, token: str):
 
 
 
+" 6. CREATE STAGE"
+@tournaments_router.post('/stage/{title}')
+def create_tournament_stage(title: str, token: str):
+    creator = get_user_or_raise_401(token)
+    if not (User.is_director(creator) or User.is_admin(creator)):
+        return JSONResponse(status_code=403, content='Only Admin and Director can create a match')
 
+    tournament = tournament_service.get_tournament_by_title(title)
+    if not tournament:
+        return JSONResponse(status_code=404, content=f'{title} not found')
+
+    stage = tournament_service.create_stage(tournament)
+    return stage
+
+
+
+
+"REMOVE PARTICIPANT"
+
+
+"UPDATE TOURNAMENT"
 
 
 """
