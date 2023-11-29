@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from services import  tournament_service, shared_service, match_service, team_service, player_service
 from authentication.authenticator import get_user_or_raise_401
 from my_models.model_user import User
-from my_models.model_tournament import sport_list
+from my_models.model_match import sports_list
 from datetime import datetime
 
 
@@ -33,6 +33,23 @@ def get_tournament_by_title(title: str):
 
 
 
+" 2.1. VIEW TOURNAMENT PARTICIPANTS"
+@tournaments_router.get('/{title}/participants')
+def view_tournament_participants(title: str):
+    tournament = tournament_service.get_tournament_by_title(title)
+    if not tournament:
+        return JSONResponse(status_code=404, content=f'{title} not found')
+
+    output = []
+    output.append(tournament_service.get_tournament_by_title(title))
+    output.append('-= PARTICIPANTS =-')
+    output.append(tournament_service.get_participants(tournament))
+
+    return output
+
+
+
+
 " 3. CREATE TOURNAMENT"
 @tournaments_router.post('/create')
 def create_tournament(token: str = Header(),
@@ -40,7 +57,7 @@ def create_tournament(token: str = Header(),
                       number_participants: int = Form(..., enum=[4, 8, 16, 32, 64, 128]),
                       t_format: str = Form(..., enum=['knockout', 'league']),
                       match_format: str = Form(..., enum=['time limit', 'score limit']),
-                      sport: str = Form(..., enum=sport_list),
+                      sport: str = Form(..., enum=sports_list),
                       game_type: str = Form(..., enum=['one on one', 'team game']),
                       date: str = Query(description='write date in format yyyy-mm-dd'),
                       prize: int = Query(gt=-1)):
@@ -64,7 +81,7 @@ def create_tournament(token: str = Header(),
 
 " 4. ADD PARTICIPANTS TO TOURNAMENT"
 @tournaments_router.put('/add/{t_title}/{participant}')
-def add_participant_to_tournament(title: str, participant: str, token):
+def add_participant_to_tournament(title: str, participant: str, token: str):
     user = get_user_or_raise_401(token)
     if not (User.is_director(user) or User.is_admin(user)):
         return JSONResponse(status_code=403, content='Only Admin and Director can create a match')
@@ -100,7 +117,7 @@ def add_participant_to_tournament(title: str, participant: str, token):
         if team is None:
             return JSONResponse(status_code=404, content=f'Team {participant} not found.')
         if tournament_service.is_player_in_tournament(team.id, tournament.id, table):
-            return JSONResponse(status_code=400, content=f'{team.name} is already in {tournament.title}')
+            return JSONResponse(status_code=400, content=f'{team.team_name} is already in {tournament.title}')
 
         output.append(tournament_service.add_team(team, tournament))
 
@@ -126,9 +143,10 @@ def delete_tournament_by_title(title: str, token: str):
 
 
 
-" 6. CREATE STAGE"
+
+" 6. CREATE KNOCKOUT STAGE"
 @tournaments_router.post('/stage/{title}')
-def create_tournament_stage(title: str, token: str):
+def arrange_knockout_stage(title: str, token: str):
     creator = get_user_or_raise_401(token)
     if not (User.is_director(creator) or User.is_admin(creator)):
         return JSONResponse(status_code=403, content='Only Admin and Director can create a match')
@@ -136,109 +154,70 @@ def create_tournament_stage(title: str, token: str):
     tournament = tournament_service.get_tournament_by_title(title)
     if not tournament:
         return JSONResponse(status_code=404, content=f'{title} not found')
+    if tournament.t_format != 'knockout':
+        return JSONResponse(status_code=400, content='knockout format is not aloud for tournament type "league"')
 
-    stage = tournament_service.create_stage(tournament)
+    stage = tournament_service.create_knockout_stage(tournament)
     return stage
 
 
 
 
-"REMOVE PARTICIPANT"
+" 7. ARRANGE LEAGUE"
+@tournaments_router.post('/league/{title}')
+def arrange_league(title: str, matches_per_days: int, token: str):
+    creator = get_user_or_raise_401(token)
+    if not (User.is_director(creator) or User.is_admin(creator)):
+        return JSONResponse(status_code=403, content='Only Admin and Director can create a match')
 
+    tournament = tournament_service.get_tournament_by_title(title)
+    if not tournament:
+        return JSONResponse(status_code=404, content=f'{title} not found')
+    if tournament.t_format != 'league':
+        return JSONResponse(status_code=400, content="League format is not aloud for tournament type 'knockout'")
 
-"UPDATE TOURNAMENT"
-
-
-"""
-
-1 добавям участници
-
-
-
-IF KNOCKOUT:
-    number_of_tp = [4, 8, 16, 32, 64, 128] == stage(2, 3, 4, 5, 6, 7)
-        
-    # choose points range
-        points_range = [0, 100]
-        
-    # arrange matches
-        order = { match_1: [tp4, tp2], match_2:[tp1, tp3] }
-            
-        First = random.choice(included_teams) # tp4
-        included_teams.remove(tp4)
-        
-        Second = random.choice(included_teams) # tp2
-        included_teams.remove(tp2)
-        
-        order[match] = [First, Second]
-    
-    
-    # play matches     
-        play_match(First, Second)
-        
-    # calculate points
-        First.match_points = random.choice(points_range)
-        Second.match_points = random.choice(points_range)
-        
-        First.tournament_points += results
-        Second.tournament_points += results
-        
-        statistics = insert_query(tournament_name, match_id, First.name, First.score, Second.name, Second.score)  
-        
-        
-        
-
-
-IF LEAGUE:  (all against all)
-    # choose points range
-        points_range = [0, 1, 3]
-        
-    # arrange matches
-        played_matches = { match_1:[tp1, tp2], match_2:[tp1, tp3], match_3[tp2, tp3] }
-        for First in teams:
-            for Second in teams:
-                if First == Second:
-                    continue
-                for value in played_matches.value():
-                    if (First and Second) not in value:
-          
-    # play matches     
-        play_match(First, Second)
-        
-    # calculate points
-        First.match_points = random.choice(points_range)
-            if First.match_points = 3:
-                Second.match_points = 0
-            elif First.match_points = 0
-                Second.match_points = 3
-            else: 
-                First.match_points = 1
-                Second.match_points = 1
-                
-        First.tournament_points += results
-        Second.tournament_points += results
-        
-        statistics = insert_query(tournament_name, match_id, First.name, First.score, Second.name, Second.score)  
-                
-        winner = max( 1.score, 2.score, 3.score )
-"""
+    league = tournament_service.arrange_league(tournament, matches_per_days)
+    return league
 
 
 
 
+" 8. GET LEAGUE RESULTS"
+@tournaments_router.get('/{title}/results')
+def get_league_results(title: str):
+    tournament = tournament_service.get_tournament_by_title(title)
+    if tournament.t_format != 'league':
+        return JSONResponse(status_code=400, content='This tournament format is not "league"')
 
-# def generate_unique_pairs(numbers):
-#     unique_pairs = set()
-#     for i in range(len(numbers)):
-#         for j in range(i + 1, len(numbers)):
-#             unique_pairs.add((numbers[i], numbers[j]))
-#
-#     return list(unique_pairs)
-#
-# # Пример за използване:
-# numbers = [1, 2, 3, 4, 5, 6, 7]
-# result = generate_unique_pairs(numbers)
-# print(result)
+    participants_list = tournament_service.get_participants(tournament)
+
+    matches = match_service.get_matches_by_tournament(title)
+    for match in matches:
+        if match.winner == 'not played':
+            return JSONResponse(status_code=400, content='All matches must be finished before calculation')
+
+    score_data = match_service.get_participants_points_for_tournament(title)
+    return score_data
+
+
+
+
+" 8. TOURNAMENT SIMULATION"
+@tournaments_router.get('/simulate/{title}')
+def simulation(token: str, title: str):
+    creator = get_user_or_raise_401(token)
+
+    if not (User.is_director(creator) or User.is_admin(creator)):
+        return JSONResponse(status_code=403, content='Only Admin and Director can simulate a matches results')
+
+    tournament = tournament_service.get_tournament_by_title(title)
+    output = []
+    if tournament.t_format == 'league':
+        match_service.simulate_league_matches(tournament)
+        return match_service.get_matches_by_tournament(title)
+
+    elif tournament.t_format == 'knockout':
+        pass
 
 
 

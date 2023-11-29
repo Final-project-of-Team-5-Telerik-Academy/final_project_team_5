@@ -33,9 +33,21 @@ class Match(BaseModel):
 
 
 sports_list = [
-    'football',
-    'tennis'
-]
+    'Badminton',
+    'Baseball',
+    'Basketball',
+    'Boxing',
+    'Chess',
+    'Football',
+    'Handball',
+    'Hockey',
+    'Kickboxing',
+    'Rugby',
+    'Squash',
+    'Table tennis',
+    'Taekwondo',
+    'Tennis',
+    'Volleyball']
 
 
 

@@ -37,11 +37,3 @@ class Tournament(BaseModel):
                     is_complete = False if is_complete == 0 else True,
                     stage = stage)
         return result
-
-
-sport_list = [
-    'football',
-    'volleyball',
-    'tennis',
-    'boxing'
-    ]

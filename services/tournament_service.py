@@ -5,8 +5,9 @@ from my_models.model_user import User
 from my_models.model_player import Player
 from my_models.model_team import Team
 from my_models.model_tournament import Tournament
-from services import date_service, user_service, match_service, date_service
+from services import user_service, match_service
 import random
+from itertools import combinations
 
 
 
@@ -98,7 +99,7 @@ def is_player_in_tournament(player_id: int, tournament_id: int, table: str):
 
 
 
-def get_participant(tournament: Tournament, stage: int | None = None):
+def get_participants(tournament: Tournament, stage: int | None = None):
     participants = []
     if tournament.game_type == 'one on one':
         sql = f'''SELECT p.id, p.full_name, p.country, p.sports_club FROM players p
@@ -117,9 +118,13 @@ def get_participant(tournament: Tournament, stage: int | None = None):
                                  'sports club': row[3]})
 
     elif tournament.game_type == 'team game':
-        teams_data = read_query('''SELECT t.id, t.team_name FROM teams t 
-                                    LEFT JOIN tournaments_teams tp ON p.id = tp.players_id
-                                    WHERE tp.tournaments_id = ?''', (tournament.id,))
+        # teams_data = read_query('''SELECT t.id, t.team_name FROM teams t
+        #                             LEFT JOIN tournaments_teams tp ON p.id = tp.players_id
+        #                             WHERE tp.tournaments_id = ?''', (tournament.id,))
+        teams_data = read_query('''SELECT teams.id, teams.team_name FROM teams
+                                    LEFT JOIN tournaments_teams tt ON tt.teams_id = teams.id
+                                    WHERE tt.tournaments_id = ?''', (tournament.id,))
+
         for row in teams_data:
             participants.append({'id': row[0], 'name': row[1]})
 
@@ -130,14 +135,18 @@ def get_participant(tournament: Tournament, stage: int | None = None):
 def delete_tournament_by_title(title: str, game_type: str):
     if game_type == 'one on one':
         update_query('DELETE FROM tournaments_players WHERE tournaments_title = ?', (title,))
+        update_query('DELETE FROM players_statistics WHERE tournament_name = ?', (title,))
     elif game_type == 'team game':
         update_query('DELETE FROM tournaments_teams WHERE tournaments_title = ?', (title,))
+        update_query('DELETE FROM teams_statistics WHERE tournament_name = ?', (title,))
+
     update_query('DELETE FROM tournaments WHERE title = ?', (title,))
+    update_query('DELETE FROM matches WHERE tournament_name = ?', (title,))
 
 
 
 def enough_participants(tournament: Tournament):
-    all_participants = get_participant(tournament)
+    all_participants = get_participants(tournament)
     difference = tournament.number_participants - len(all_participants)
     if difference == 0:
         return JSONResponse(status_code=400,
@@ -145,7 +154,7 @@ def enough_participants(tournament: Tournament):
 
 
 def need_or_complete(tournament: Tournament, table: str):
-    all_participants = get_participant(tournament)
+    all_participants = get_participants(tournament)
     difference = tournament.number_participants - len(all_participants)
     if difference > 0:
         return {'message': f'you need {difference} participants to complete the tournament.'}
@@ -162,8 +171,8 @@ def need_or_complete(tournament: Tournament, table: str):
 
 
 " 6. CREATE STAGE"
-def create_stage(tournament: Tournament):
-    participants_list = get_participant(tournament, tournament.stage)
+def create_knockout_stage(tournament: Tournament):
+    participants_list = get_participants(tournament, tournament.stage)
     number_matches = len(participants_list) // 2
 
     output = []
@@ -200,35 +209,40 @@ def create_stage(tournament: Tournament):
 
 
 
+" 7. CREATE LEAGUE"
+def arrange_league(tournament: Tournament, matches_per_days: int):
+    participants_list = get_participants(tournament)
+    unique_pairs = list(combinations(participants_list, 2))
 
+    matches_list = []
+    counter_matches = 0
+    days_counter = 0
 
+    for el in unique_pairs:
+        participant_1 = el[0]
+        participant_2 = el[1]
 
-# number_matches = int(tournament.number_participants // 2)
-# for t_match in range(1, number_matches + 1):
-#     participants_list = get_participant(tournament, tournament.stage)
-#
-#     participant_1 = random.choice(participants_list)
-#     participant_1_name = participant_1['name']
-#
-#     participant_2 = random.choice(participants_list)
-#     participant_2_name = participant_2['name']
-#
-#     # set a match
-#     match_format = tournament.match_format
-#     game_type = tournament.game_type
-#     stage_date = tournament.date + timedelta(days=1)
-#     t_title = tournament.title
-#     current_stage = tournament.stage
-#     stage = current_stage + 1
-#     match = match_service.create_match(match_format, game_type, participant_1_name,
-#                                        participant_2_name, stage_date, t_title, stage)
-#
-#     participants_list.remove(participant_1)
-#     participants_list.remove(participant_2)
-#
-# current_stage = tournament.stage
-# new_stage = current_stage + 1
-# update_query(f'UPDATE tournaments SET stage = {new_stage} WHERE title = {tournament.title}')
-#
+        match_format = tournament.match_format
+        game_type = tournament.game_type
+        sport = tournament.sport
+        creator_name = user_service.get_user_full_name_by_id(tournament.creator)
+        t_title = tournament.title
+
+        if counter_matches % matches_per_days == 0:
+            days_counter += 1
+        date = tournament.date + timedelta(days=days_counter)
+
+        match = match_service.create_match(match_format = match_format,
+                                           game_type = game_type,
+                                           sport = sport,
+                                           participant_1 = participant_1['name'],
+                                           participant_2 = participant_2['name'],
+                                           creator_name = creator_name,
+                                           date = date,
+                                           t_title = t_title,
+                                           stage = 0)
+        counter_matches += 1
+        matches_list.append(match)
+    return matches_list
 
 
