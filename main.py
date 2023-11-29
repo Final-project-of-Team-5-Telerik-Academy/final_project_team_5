@@ -21,7 +21,7 @@ app.include_router(teams_router)
 app.include_router(matches_router)
 app.include_router(tournaments_router)
 app.include_router(statistics_router)
-app.include_router(date_router)
+
 
 
 if __name__ == "__main__":
