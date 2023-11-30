@@ -7,7 +7,7 @@ from services.shared_service import id_exists
 from my_models.model_admin_requests import AdminRequests
 from my_models.model_director_requests import DirectorRequests
 
-class AdminRequestsTests(unittest.TestCase):
+class RequestsTests(unittest.TestCase):
 
     @patch('services.shared_service.read_query')
     def test_id_exists_bool(self, mock_read_query):
