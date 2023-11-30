@@ -1,7 +1,6 @@
 from my_models.model_team import Team
 from my_models.model_player import Player
 from data.database import read_query, insert_query, update_query, read_query_additional
-from services.shared_service import full_name_exists
 from fastapi.responses import JSONResponse
 from authentication.authenticator import get_user_or_raise_401
 from my_models.model_user import User
@@ -30,7 +29,7 @@ def create_team(team_name: str, number_of_players: int, owners_id: int) -> Team:
 
     Args:
         - team_name: str
-        - number_of_players: str
+        - number_of_players: int
         - owners_id: int
 
     Returns:
@@ -62,29 +61,30 @@ def get_all_teams() -> Team | None:
 
     data = read_query('SELECT id, team_name, number_of_players, owners_id FROM teams')
 
-    result = (Team.from_query_result(*row) for row in data)
+    # result = (Team.from_query_result(*row) for row in data)
+    result = (Team.from_query_result(*row) for row in data),
 
     return result
 
 
-def get_team_by_id(id: int) -> Team | None:
-    ''' Used for getting a single team by team.id.
+# def get_team_by_id(id: int) -> Team | None:
+#     ''' Used for getting a single team by team.id.
     
-    Args:
-        - team.id: int(URL link)
+#     Args:
+#         - team.id: int(URL link)
     
-    Returns:
-        - team
-    '''
+#     Returns:
+#         - team
+#     '''
 
-    team = read_query_additional('SELECT id, team_name, number_of_players, owners_id FROM teams where id = ?',(id,))
+#     team = read_query_additional('SELECT id, team_name, number_of_players, owners_id FROM teams where id = ?',(id,))
 
-    if team is None:
-        return JSONResponse(status_code=404, content=f'Team with id: {id} does not exist.')
+#     if team is None:
+#         return JSONResponse(status_code=404, content=f'Team with id: {id} does not exist.')
 
-    actual = Team.from_query_result(*team)
+#     actual = Team.from_query_result(*team)
 
-    return actual
+#     return actual
 
 
 def get_team_and_players_by_id(id: int) -> Team | None:
@@ -123,6 +123,15 @@ def delete_team(id: int):
                  (id,))
 
 
+def teams_list_exists() -> bool:
+    ''' Used to check if there is any registered team in the database.'''
+
+    return any(
+        read_query(
+            'SELECT id, team_name, number_of_players, owners_id FROM teams',
+            ))
+
+
 def create_a_team(team_name: str, number_of_players: int, x_token: str):
     ''' Used for creating a new team by a director or admin.
 
@@ -135,8 +144,8 @@ def create_a_team(team_name: str, number_of_players: int, x_token: str):
         - Created team information
     '''
 
-    if x_token == None:
-        return JSONResponse(status_code=401, content='You must be logged in and be an admin or a director to be able to create a player.')    
+    # if x_token == None:
+    #     return JSONResponse(status_code=401, content='You must be logged in and be an admin or a director to be able to create a player.')    
     
     user = get_user_or_raise_401(x_token)
 
@@ -150,7 +159,7 @@ def create_a_team(team_name: str, number_of_players: int, x_token: str):
     return created_team
 
 
-def get_all_teams(x_token: str):
+def find_all_teams(x_token: str):
     ''' Used to get all teams.
     
     Args:
@@ -162,6 +171,8 @@ def get_all_teams(x_token: str):
 
     if x_token is None:
         return JSONResponse(status_code=401, content='You must be logged in to view the list of teams.')
+    elif not teams_list_exists():
+        return JSONResponse(status_code=404, content='There are no teams.')
     
     user = get_user_or_raise_401(x_token)
 
@@ -179,7 +190,7 @@ def get_all_teams(x_token: str):
     return list_of_teams
 
 
-def get_team_by_id(id: int, x_token: str):
+def find_team_by_id(id: int, x_token: str):
     ''' Used to to get a team by id.
     
     Args:
@@ -218,8 +229,8 @@ def delete_team_by_id(id: int, x_token: str):
         - Deleted team
     '''
 
-    if x_token == None:
-        return JSONResponse(status_code=401, content='You must be logged in and be an admin or a director and owner to be able to delete a team.')    
+    # if x_token == None:
+    #     return JSONResponse(status_code=401, content='You must be logged in and be an admin or a director and owner to be able to delete a team.')    
     
     user = get_user_or_raise_401(x_token)
 
@@ -253,6 +264,6 @@ def get_team_by_name(name: str) -> Team | None:
     if team is None:
         return JSONResponse(status_code=404, content=f'Team with name: {name} does not exist.')
 
-    actual = Team.from_query_result(*team)
+    actual = Team.from_query_result_additional(*team)
 
     return actual

@@ -116,6 +116,6 @@ class User(BaseModel):
             gender=gender,
             role=role,
             players_id=players_id,
-            is_verified='******',
-            verification_code='******'
+            is_verified=0,
+            verification_code=0
             )

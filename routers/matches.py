@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Query, Header, Form
 from fastapi.responses import JSONResponse
 from services import match_service, date_service
-from authentication.authenticator import get_user_or_raise_401, get_user_from_token
+from authentication.authenticator import get_user_or_raise_401
 from services import shared_service
+from services import email_service
+from services import user_service
 from my_models.model_user import User
 from datetime import datetime, date
 from my_models.model_player import Player
@@ -64,7 +66,12 @@ def create_match_one_on_one(token: str = Header(),
                     We've created profile for him, but it is uncompleted. You must finish it!'''})
     else:
         if not existing_player.is_active:
-            return f'{existing_player} is not activ player.'
+            return f'{existing_player} is not active player.'
+        
+        users_account = user_service.players_id_exists_in_users(existing_player.id, existing_player.full_name)
+        if users_account != None:
+            email_service.send_email(users_account.email, 'added_to_match')
+
         participant_1 = existing_player.full_name
 
 # get player 2
@@ -76,7 +83,12 @@ def create_match_one_on_one(token: str = Header(),
                     We've created profile for him, but it is uncompleted. You must finish it!'''})
     else:
         if not existing_player.is_active:
-            return f'{existing_player} is not activ player.'
+            return f'{existing_player} is not active player.'
+        
+        users_account = user_service.players_id_exists_in_users(existing_player.id, existing_player.full_name)
+        if users_account != None:
+            email_service.send_email(users_account.email, 'added_to_match')
+
         participant_2 = existing_player.full_name
 
     if participant_1 == participant_2:

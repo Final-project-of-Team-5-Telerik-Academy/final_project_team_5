@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Query, Header, Form
 from fastapi.responses import JSONResponse
-from services import  date_service, tournament_service, match_service, shared_service, player_service, team_service
-from authentication.authenticator import get_user_or_raise_401, get_user_from_token
+from services import  date_service, tournament_service, match_service, shared_service, player_service, team_service, user_service, email_service
+from authentication.authenticator import get_user_or_raise_401
 from pydantic import constr
 from my_models.model_user import User
 from datetime import datetime
@@ -110,6 +110,12 @@ def add_participant_to_tournament(title: str, participant: str, token):
         output.append(result)
 
         participants = tournament_service.get_participant(tournament)
+        
+        for p in participants:
+            users_account = user_service.players_id_exists_in_users(p['id'], p['name'])
+            if users_account != None:
+                email_service.send_email(users_account.email, 'added_to_tournament')
+        
         difference = tournament.number_participants - len(participants)
         if difference > 0:
             output.append(f'you need {difference} participants to complete the tournament.')

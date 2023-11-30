@@ -34,7 +34,7 @@ def find_all_teams(x_token: str = Header()):
         - list of all teams
     '''
 
-    return team_service.get_all_teams(x_token)
+    return team_service.find_all_teams(x_token)
 
 
 @teams_router.get('/id', description='Find team:')
@@ -48,7 +48,7 @@ def find_team_by_id(id:int = Query(..., description='Enter id of the team:'), x_
         - team
     '''
 
-    return team_service.get_team_by_id(id, x_token)
+    return team_service.find_team_by_id(id, x_token)
 
 
 @teams_router.delete('/', description="Delete a team:")
