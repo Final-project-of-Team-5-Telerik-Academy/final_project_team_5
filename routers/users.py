@@ -44,8 +44,8 @@ def verification(email: str = Query(..., description='Enter your email address:'
 
 
 @users_router.post('/login', description='Please enter your personal information:')
-def login(email: str = Query(..., description='Enter your email address:'), 
-          password: str = Query(..., description='Enter your password:')):
+def login(email: str = Query('steven.atkinson@gmail.com', description='Enter your email address:'),
+          password: str = Query('steven1', description='Enter your password:')):
     ''' Used for logging in.
 
     Args:

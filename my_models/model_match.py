@@ -4,31 +4,50 @@ from my_models.model_user import User
 
 class Match(BaseModel):
     id: int | None
-    format: constr(pattern='^time limit|score limit$')
+    match_format: constr(pattern='^time limit|score limit$')
     game_type: str
+    sport: str
     participant_1: str
     participant_2: str
+    creator: str
     date: date
-    winner: str | None = None
-    tournament_name: str | None = None
-    stage: int | None = None
+    winner: str | None
+    tournament_name: str | None
+    stage: int
 
 
     @classmethod
-    def from_query_result(cls, id, format, game_type, participant_1, participant_2,
-                          date, winner, tournament_name, stage):
+    def from_query_result(cls, id, match_format, game_type, sport, participant_1, participant_2,
+                          creator, date, winner, tournament_name, stage):
         return cls( id = id,
-                    format = format,
+                    match_format = match_format,
                     game_type = game_type,
+                    sport = sport,
                     participant_1 = participant_1,
                     participant_2 = participant_2,
+                    creator = creator,
                     date = date,
                     winner = winner,
                     tournament_name = tournament_name,
                     stage = stage)
 
 
-
+sports_list = [
+    'Badminton',
+    'Baseball',
+    'Basketball',
+    'Boxing',
+    'Chess',
+    'Football',
+    'Handball',
+    'Hockey',
+    'Kickboxing',
+    'Rugby',
+    'Squash',
+    'Table tennis',
+    'Taekwondo',
+    'Tennis',
+    'Volleyball']
 
 
 

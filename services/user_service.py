@@ -289,7 +289,7 @@ def send_creation_request(users_id:int, full_name: str, country: str, sports_clu
     return DirectorRequests(id=generated_id, full_name=full_name, country=country, sports_club=sports_club, users_id=users_id, status=status)
 
 
-def get_user_full_name_by_id(user_id: str):
+def get_user_full_name_by_id(user_id):
     user_name = read_query('SELECT full_name FROM users WHERE id = ?', (user_id,))
     return user_name[0][0]
 
