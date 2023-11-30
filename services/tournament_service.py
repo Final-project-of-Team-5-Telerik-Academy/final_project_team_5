@@ -5,7 +5,7 @@ from my_models.model_user import User
 from my_models.model_player import Player
 from my_models.model_team import Team
 from my_models.model_tournament import Tournament
-from services import user_service, match_service
+from services import user_service, match_service, player_service, team_service
 import random
 from itertools import combinations
 
@@ -118,9 +118,6 @@ def get_participants(tournament: Tournament, stage: int | None = None):
                                  'sports club': row[3]})
 
     elif tournament.game_type == 'team game':
-        # teams_data = read_query('''SELECT t.id, t.team_name FROM teams t
-        #                             LEFT JOIN tournaments_teams tp ON p.id = tp.players_id
-        #                             WHERE tp.tournaments_id = ?''', (tournament.id,))
         teams_data = read_query('''SELECT teams.id, teams.team_name FROM teams
                                     LEFT JOIN tournaments_teams tt ON tt.teams_id = teams.id
                                     WHERE tt.tournaments_id = ?''', (tournament.id,))
@@ -246,3 +243,161 @@ def arrange_league(tournament: Tournament, matches_per_days: int):
     return matches_list
 
 
+
+" 8. SIMULATE LEAGUE TOURNAMENT"
+def simulate_league_tournament(tournament: Tournament):
+    t_matches = match_service.get_matches_by_tournament(tournament.title)
+
+    for current_match in t_matches:
+        participant_1 = player_service.get_player_by_full_name(current_match.participant_1)
+        participant_2 = player_service.get_player_by_full_name(current_match.participant_2)
+
+        participant_type = tournament.game_type
+        if participant_type == 'one on one':
+            p_type = 'player'
+        else:
+            p_type = 'team'
+
+        winner = random.choice([0, 1, 3])
+        if winner == 0:
+            p1_score = 0
+            p2_score = 3
+            winner_name = participant_2.full_name
+            p1_win = 0
+            p2_win = 1
+
+        elif winner == 3:
+            p1_score = 3
+            p2_score = 0
+            winner_name = participant_1.full_name
+            p1_win = 1
+            p2_win = 0
+
+        elif winner == 1:
+            p1_score = 1
+            p2_score = 1
+            winner_name = 'draw'
+            p1_win = 0
+            p2_win = 0
+
+        update_query('''UPDATE matches SET winner = ? WHERE id = ?''',
+                     (winner_name, current_match.id))
+
+        match_service.update_statistics(p_type = p_type,
+                                        participant_id = participant_1.id,
+                                        participant_name = participant_1.full_name,
+                                        participant_score = p1_score,
+                                        opponent_name = participant_2.full_name,
+                                        opponent_score = p2_score,
+                                        win = p1_win,
+                                        loss = p2_win,
+                                        matches_id=current_match.id,
+                                        tournament_name = current_match.tournament_name,
+                                        tournament_trophy = 0,
+                                        stage = current_match.stage,
+                                        date = current_match.date)
+
+        match_service.update_statistics(p_type = p_type,
+                                        participant_id = participant_2.id,
+                                        participant_name = participant_2.full_name,
+                                        participant_score = p2_score,
+                                        opponent_name = participant_1.full_name,
+                                        opponent_score = p1_score,
+                                        win = p2_win,
+                                        loss = p1_win,
+                                        matches_id=current_match.id,
+                                        tournament_name = current_match.tournament_name,
+                                        tournament_trophy = 0,
+                                        stage  =current_match.stage,
+                                        date = current_match.date)
+
+
+
+" 6.1. SIMULATE  KNOCKOUT TOURNAMENT"
+def simulate_knockout_tournament_matches(tournament: Tournament):
+    all_matches = match_service.get_knockout_matches_by_tournament(tournament.title, tournament.stage)
+
+
+    output = []
+    output.append('-= KNOCKOUT TOURNAMENT SIMULATIONS RESULTS =-')
+    for current_match in all_matches:
+        if current_match.tournament_name == "not part of a tournament":
+            continue
+        participant_type = current_match.game_type
+
+        if participant_type == 'one on one':
+            p_type = 'player'
+            participant_1 = player_service.get_player_by_full_name(current_match.participant_1)
+            participant_1_name = participant_1.full_name
+            participant_2 = player_service.get_player_by_full_name(current_match.participant_2)
+            participant_2_name = participant_2.full_name
+        else:
+            p_type = 'team'
+            participant_1 = team_service.get_team_by_name(current_match.participant_1)
+            participant_1_name = participant_1.team_name
+            participant_2 = team_service.get_team_by_name(current_match.participant_2)
+            participant_2_name = participant_2.team_name
+
+        if current_match.match_format == 'score limit':
+            p1_score = random.randint(0, 10)
+            p2_score = random.randint(0, 10)
+        else:
+            p1_score = random.uniform(2.01, 20.01)
+            p2_score = random.uniform(2.01, 20.01)
+
+        if p1_score >= p2_score:
+            winner_name = participant_1_name
+            p1_win = 1
+            p2_win = 0
+            p2_score -= 1
+            level_participants_stage(p_type, tournament.title, winner_name, tournament.stage + 1)
+        else:
+            winner_name = participant_2_name
+            p1_win = 0
+            p2_win = 1
+            level_participants_stage(p_type, tournament.title, winner_name, tournament.stage + 1)
+
+        update_query('''UPDATE matches SET winner = ? WHERE id = ?''',
+                     (winner_name, current_match.id))
+
+        match_service.update_statistics(p_type=p_type,
+                                        participant_id=participant_1.id,
+                                        participant_name=participant_1_name,
+                                        participant_score=p1_score,
+                                        opponent_name=participant_2_name,
+                                        opponent_score=p2_score,
+                                        win=p1_win,
+                                        loss=p2_win,
+                                        matches_id=current_match.id,
+                                        tournament_name=current_match.tournament_name,
+                                        tournament_trophy=0,
+                                        stage=current_match.stage,
+                                        date=current_match.date)
+
+        match_service.update_statistics(p_type=p_type,
+                                        participant_id=participant_2.id,
+                                        participant_name=participant_2_name,
+                                        participant_score=p2_score,
+                                        opponent_name=participant_1_name,
+                                        opponent_score=p1_score,
+                                        win=p2_win,
+                                        loss=p1_win,
+                                        matches_id=current_match.id,
+                                        tournament_name=current_match.tournament_name,
+                                        tournament_trophy=0,
+                                        stage=current_match.stage,
+                                        date=current_match.date)
+
+        output.append(match_service.get_match_by_id(current_match.id))
+
+    new_stage = tournament.stage + 1
+    update_query(f'UPDATE tournaments SET stage = ? WHERE tournaments_title = ?',
+                 (new_stage, tournament.title,))
+    return output
+
+
+
+def level_participants_stage(table: str, title: str, winner: str, stage: int):
+    update_query(f'''UPDATE tournaments_{table}s SET stage = ?
+                    WHERE tournaments_title = ? AND {table}_name = ?''',
+                 (stage, title, winner))

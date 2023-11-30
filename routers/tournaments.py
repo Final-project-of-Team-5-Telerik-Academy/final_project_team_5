@@ -59,7 +59,7 @@ def create_tournament(token: str = Header(),
                       match_format: str = Form(..., enum=['time limit', 'score limit']),
                       sport: str = Form(..., enum=sports_list),
                       game_type: str = Form(..., enum=['one on one', 'team game']),
-                      date: str = Query(description='write date in format yyyy-mm-dd'),
+                      date: str = Query(description='write date in format yyyy-m-d'),
                       prize: int = Query(gt=-1)):
 
     creator = get_user_or_raise_401(token)
@@ -131,8 +131,8 @@ def add_participant_to_tournament(title: str, participant: str, token: str):
 @tournaments_router.delete('/{title}')
 def delete_tournament_by_title(title: str, token: str):
     creator = get_user_or_raise_401(token)
-    if not (User.is_director(creator) or User.is_admin(creator)):
-        return JSONResponse(status_code=403, content='Only Admin and Director can create a match')
+    if not User.is_admin(creator):
+        return JSONResponse(status_code=403, content='Only Admin can create a match')
 
     tournament = tournament_service.get_tournament_by_title(title)
     if not tournament:
@@ -204,21 +204,24 @@ def get_league_results(title: str):
 
 " 8. TOURNAMENT SIMULATION"
 @tournaments_router.get('/simulate/{title}')
-def simulation(token: str, title: str):
+def tournament_simulation(token: str, title: str):
     creator = get_user_or_raise_401(token)
-
     if not (User.is_director(creator) or User.is_admin(creator)):
         return JSONResponse(status_code=403, content='Only Admin and Director can simulate a matches results')
 
     tournament = tournament_service.get_tournament_by_title(title)
     output = []
+    output.append(f'-= {tournament.title} SIMULATION RESULTS =-')
+
     if tournament.t_format == 'league':
-        match_service.simulate_league_matches(tournament)
-        return match_service.get_matches_by_tournament(title)
+        tournament_service.simulate_league_tournament(tournament)
+        output.append(match_service.get_matches_by_tournament(title))
 
     elif tournament.t_format == 'knockout':
-        pass
+        tournament_service.simulate_knockout_tournament_matches(tournament)
+        output.append(match_service.get_matches_by_tournament(title))
 
+    return output
 
 
 

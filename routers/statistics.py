@@ -6,9 +6,9 @@ from services import player_service, statistic_service
 statistics_router = APIRouter(prefix='/statistics', tags=['Statistics'])
 
 
-@statistics_router.get('/{player}')
-def single_player_statistics(name: str = Query(description="type team or player name", default='Stella Johnson'),
-                      matches: str = Query(description='filter by: all / wins / losses', default='all')):
+@statistics_router.put('/{player}')
+def single_player_statistics(name: str = Query(description="type player name", default='Jim Halpert'),
+                             matches: str = Form('all', enum=['all', 'wins', 'losses'])):
 
     existing_player = player_service.get_player_by_full_name(name)
     if existing_player is None:
@@ -19,10 +19,8 @@ def single_player_statistics(name: str = Query(description="type team or player 
 
 
 @statistics_router.put('/{all_players}')
-def all_players_statistics(sort: str = Form(..., description="Select an option",
-                                             enum=['wins', 'matches', 'tournaments_played', 'tournaments_win']),
-                           order: str = Form(..., description='Select an option',
-                                             enum=['descending', 'ascending'])):
+def all_players_statistics(sort: str = Form(..., enum=['wins', 'matches', 'tournaments_played', 'tournaments_win']),
+                           order: str = Form(..., enum=['descending', 'ascending'])):
     result = statistic_service.all_players_statistics(sort, order)
     return result
 

@@ -194,4 +194,4 @@ def check_date_format(date: str):
 # check format is correct    alternative: ^(0?[1-9]|[12][0-9]|3[01])[\/\-](0?[1-9]|1[012])[\/\-]\d{4}$
     pattern = re.compile(r'^\d{4}[\/\-](0?[1-9]|1[012])[\/\-](0?[1-9]|[12][0-9]|3[01])$')
     if not pattern.match(date):
-        return JSONResponse(status_code=400, content="The date must be in format 'yyyy-mm-dd' (2023-3-15)")
+        return JSONResponse(status_code=400, content="The date must be in format 'yyyy-m-d' (2023-3-15)")
