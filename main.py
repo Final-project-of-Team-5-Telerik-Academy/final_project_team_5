@@ -5,7 +5,6 @@ from routers.players import players_router
 from routers.admin_requests import admin_requests_router
 from routers.director_requests import director_requests_router
 from routers.matches import matches_router
-from routers.date import date_router
 from routers.tournaments import tournaments_router
 from routers.statistics import statistics_router
 from routers.teams import teams_router

@@ -54,7 +54,7 @@ def create_match(token: str,
                  match_format: str = Form('time limit', enum=['time limit', 'score limit']),
                  participant_1: str = Query(),
                  participant_2: str = Query(),
-                 date: str = Query(description='write date in format yyyy-mm-dd'),
+                 date: str = Query(description='write date in format yyyy-m-d'),
                  tournament_name: str = Query(default='not part of a tournament')):
 
 # check if authenticated and role
@@ -104,14 +104,30 @@ def create_match(token: str,
 
     output = []
     if game_type == 'one on one':
-        output.append(match_service.check_create_player(participant_1))
-        output.append(match_service.check_create_player(participant_2))
+        player_1 = player_service.get_player_by_full_name(participant_1)
+        if player_1 is None:
+            participant_1 = match_service.check_create_player(participant_1)
+            participant_1 = participant_1.full_name
+            output.append({'warning': f'{participant_1} is new to the system. We have created a profile for him but it needs to be completed'})
 
-    elif game_type == 'team game':      # TODO: check team exists
+        player_2 = player_service.get_player_by_full_name(participant_2)
+        if player_2 is None:
+            participant_2 = match_service.check_create_player(participant_2)
+            participant_2 = participant_2.full_name
+            output.append({'warning': f'{participant_2} is new to the system. We have created a profile for him but it needs to be completed'})
+
+        # output.append(match_service.check_create_player(participant_1))
+        # output.append(match_service.check_create_player(participant_2))
+
+    elif game_type == 'team game':
         participant_1 = team_service.get_team_by_name(participant_1)
+        if not participant_1:
+            return JSONResponse(status_code=404, content=f'Team {participant_1} does not exist in te system')
         participant_1 = participant_1.team_name
 
         participant_2 = team_service.get_team_by_name(participant_2)
+        if not participant_2:
+            return JSONResponse(status_code=404, content=f'Team {participant_2} does not exist in te system')
         participant_2 = participant_2.team_name
 
     match = match_service.create_match(match_format, game_type, sport, participant_1,
@@ -159,8 +175,8 @@ def enter_match_winner(token: str, match_id: int,
 @matches_router.delete('/{id}')
 def delete_match(id: int, token: str):
     user = get_user_or_raise_401(token)
-    if not (User.is_director(user) or User.is_admin(user)):
-        return JSONResponse(status_code=403, content='Only Admin and Director can delete a match')
+    if not User.is_admin(user):
+        return JSONResponse(status_code=403, content='Only Admin can delete a match')
 
     match = match_service.get_match_by_id(id)
     if not match:
@@ -189,9 +205,21 @@ def delete_matches_by_tournament(title: str, token: str):
 
 
 
+" 6. MATCHES SIMULATIONS"
+@matches_router.get('/simulations/')
+def matches_simulations(token: str):
+    creator = get_user_or_raise_401(token)
+    if not (User.is_director(creator) or User.is_admin(creator)):
+        return JSONResponse(status_code=403, content='Only Admin and Director can simulate a matches results')
+
+    result = match_service.matches_simulations()
+    return result
 
 
-"UPDATE MATCH DATE" # TODO
+
+
+
+"UPDATE MATCH" # TODO
 # @matches_router.put('/update/{date}')
 # def update_match_date(token, current_title: str, new_date: str):
 #     current_table = 'matches'

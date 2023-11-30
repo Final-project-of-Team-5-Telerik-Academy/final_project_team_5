@@ -39,9 +39,10 @@ def get_all_matches(status: str, sort: str):
 
 " 1.1 GET ALL MATCHES BY TOURNAMENT"
 def get_matches_by_tournament(title: str):
-    row_data = read_query('''SELECT id, match_format, game_type, sport, participant_1, participant_2, 
+    row_data = read_query(f'''SELECT id, match_format, game_type, sport, participant_1, participant_2, 
             creator, date, winner, tournament_name, stage FROM matches 
-            WHERE tournament_name = ?''', (title,))
+            WHERE tournament_name = ?''', (title, ))
+
 
     if row_data is None:
         return JSONResponse(status_code=404, content=f'There are no matches for tournament "{title}"')
@@ -52,6 +53,21 @@ def get_matches_by_tournament(title: str):
             result.append(match_dict)
         return result
 
+
+
+def get_knockout_matches_by_tournament(title: str, stage: int):
+    row_data = read_query('''SELECT id, match_format, game_type, sport, participant_1, participant_2, 
+            creator, date, winner, tournament_name, stage FROM matches 
+            WHERE tournament_name = ? AND stage = ?''', (title, stage, ))
+
+    if row_data is None:
+        return JSONResponse(status_code=404, content=f'There are no matches for tournament "{title}"')
+    else:
+        result = []
+        for el in row_data:
+            match_dict = Match.from_query_result(*el)
+            result.append(match_dict)
+        return result
 
 
 
@@ -204,38 +220,45 @@ def delete_match(id: int):
 
 
 
-" 8. SIMULATE LEAGUE MATCHES"
-def simulate_league_matches(tournament: Tournament):
-    t_matches = get_matches_by_tournament(tournament.title)
+" 6. MATCHES SIMULATIONS"
+def matches_simulations():
+    all_matches = get_all_matches('upcoming', 'asc')
 
-    for current_match in t_matches:
-        participant_1 = player_service.get_player_by_full_name(current_match.participant_1)
-        participant_2 = player_service.get_player_by_full_name(current_match.participant_2)
-
-        participant_type = tournament.game_type
+    output = []
+    output.append('-= MATCHES SIMULATIONS RESULTS =-')
+    for current_match in all_matches:
+        if current_match.tournament_name != "not part of a tournament":
+            continue
+        participant_type = current_match.game_type
         if participant_type == 'one on one':
             p_type = 'player'
+            participant_1 = player_service.get_player_by_full_name(current_match.participant_1)
+            participant_1_name = participant_1.full_name
+            participant_2 = player_service.get_player_by_full_name(current_match.participant_2)
+            participant_2_name = participant_2.full_name
         else:
             p_type = 'team'
+            participant_1 = team_service.get_team_by_name(current_match.participant_1)
+            participant_1_name = participant_1.team_name
+            participant_2 = team_service.get_team_by_name(current_match.participant_2)
+            participant_2_name = participant_2.team_name
 
-        winner = random.choice([0, 1, 3])
-        if winner == 0:
-            p1_score = 0
-            p2_score = 3
-            winner_name = participant_2.full_name
-            p1_win = 0
-            p2_win = 1
+        if current_match.match_format == 'score limit':
+            p1_score = random.randint(0, 10)
+            p2_score = random.randint(0, 10)
+        else:
+            p1_score = random.uniform(2.01, 20.01)
+            p2_score = random.uniform(2.01, 20.01)
 
-        elif winner == 3:
-            p1_score = 3
-            p2_score = 0
-            winner_name = participant_1.full_name
+        if p1_score > p2_score:
+            winner_name = participant_1_name
             p1_win = 1
             p2_win = 0
-
-        elif winner == 1:
-            p1_score = 0
-            p2_score = 0
+        elif p1_score < p2_score:
+            winner_name = participant_2_name
+            p1_win = 0
+            p2_win = 1
+        else:
             winner_name = 'draw'
             p1_win = 0
             p2_win = 0
@@ -245,9 +268,9 @@ def simulate_league_matches(tournament: Tournament):
 
         update_statistics(p_type = p_type,
                           participant_id = participant_1.id,
-                          participant_name = participant_1.full_name,
+                          participant_name = participant_1_name,
                           participant_score = p1_score,
-                          opponent_name = participant_2.full_name,
+                          opponent_name = participant_2_name,
                           opponent_score = p2_score,
                           win = p1_win,
                           loss = p2_win,
@@ -259,9 +282,9 @@ def simulate_league_matches(tournament: Tournament):
 
         update_statistics(p_type = p_type,
                           participant_id = participant_2.id,
-                          participant_name = participant_2.full_name,
+                          participant_name = participant_2_name,
                           participant_score = p2_score,
-                          opponent_name = participant_1.full_name,
+                          opponent_name = participant_1_name,
                           opponent_score = p1_score,
                           win = p2_win,
                           loss = p1_win,
@@ -271,22 +294,23 @@ def simulate_league_matches(tournament: Tournament):
                           stage  =current_match.stage,
                           date = current_match.date)
 
+        output.append(get_match_by_id(current_match.id))
+    return output
+
+
+
 
 "GET TOURNAMENTS POINTS"
 def get_participants_points_for_tournament(title: str):
     row_data = read_query('''SELECT player_name, player_score FROM players_statistics 
                                 WHERE tournament_name = ?''',
                           (title,))
-
-
-
     result_dict = {}
     for name, score in row_data:
         if name in result_dict:
             result_dict[name] += score
         else:
             result_dict[name] = score
-
 
     return result_dict
 

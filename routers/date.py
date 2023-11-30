@@ -17,12 +17,12 @@ def check_current_date():
 
 
 "SET SPECIFIC DATE IN THE FUTURE"
-@date_router.post('/date/{future_date}', description='Set specific date in the future in format "yyyy-mm-dd" (2023-3-15).')
+@date_router.post('/date/{future_date}', description='Set specific date in the future in format "yyyy-m-d" (2023-3-15).')
 def set_specific_date(new_date: str):
 # check format is correct    alternative: ^(0?[1-9]|[12][0-9]|3[01])[\/\-](0?[1-9]|1[012])[\/\-]\d{4}$
     pattern = re.compile(r'^\d{4}[\/\-](0?[1-9]|1[012])[\/\-](0?[1-9]|[12][0-9]|3[01])$')
     if not pattern.match(new_date):
-        return JSONResponse(status_code=400, content="The date must be in format 'yyyy-mm-dd' (2023-3-15)")
+        return JSONResponse(status_code=400, content="The date must be in format 'yyyy-m-d' (2023-3-15)")
 
 # check if date is not in past
     if not date_service.date_is_in_future(new_date):

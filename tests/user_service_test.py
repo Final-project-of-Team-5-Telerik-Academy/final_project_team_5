@@ -329,21 +329,21 @@ class UserServicesTests(unittest.TestCase):
         )
         self.assertEqual(result, None)
 
-    # @patch('services.user_service.read_query')
-    # def test_players_id_exists_in_users(self, mock_read_query):
+    @patch('services.user_service.read_query')
+    def test_players_id_exists_in_users(self, mock_read_query):
 
-    #     # Arrange
-    #     mock_read_query.return_value = [
-    #         (3, 'Bob Ross', 'bob_ross@gmail.com', '******', 'male', 'player', 4, '******', '******')]
+        # Arrange
+        mock_read_query.return_value = [
+            (3, 'Bob Ross', 'bob_ross@gmail.com', '******', 'male', 'player', 4, '******', '******')]
 
-    #     # Act
-    #     result = user_service.players_id_exists_in_users(4, 'Bob Ross')
+        # Act
+        result = user_service.players_id_exists_in_users(4, 'Bob Ross')
 
-    #     # Assert
-    #     mock_read_query.assert_called_once_with(
-    #         'SELECT id, full_name, email, password, gender, role, players_id, is_verified, verification_code FROM users WHERE players_id = ? and full_name = ?',
-    #         (4, 'Bob Ross'))
-    #     self.assertTrue(result)
+        # Assert
+        mock_read_query.assert_called_once_with(
+            'SELECT id, full_name, email, password, gender, role, players_id, is_verified, verification_code FROM users WHERE players_id = ? and full_name = ?',
+            (4, 'Bob Ross'))
+        self.assertTrue(result)
 
 
 if __name__ == '__main__':
