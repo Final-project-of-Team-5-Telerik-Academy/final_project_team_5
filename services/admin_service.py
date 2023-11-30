@@ -21,6 +21,9 @@ def find_all_users() -> User | None:
 
     data = read_query('SELECT id, full_name, email, password, gender, role, players_id, is_verified, verification_code FROM users')
 
+    if data is None:
+        return JSONResponse(status_code=404, content='There are no registered users.')
+
     result = (User.from_query_result_no_password(*row) for row in data)
 
     return result
@@ -35,6 +38,9 @@ def find_user_by_role(role) -> User | None:
 
     data = read_query('SELECT id, full_name, email, password, gender, role, players_id, is_verified, verification_code FROM users WHERE role = ?',
                       (role,))
+    
+    if data is None:
+        return JSONResponse(status_code=404, content='There are no users with that role.')
 
     result = (User.from_query_result_no_password(*row) for row in data)
 
@@ -54,8 +60,11 @@ def find_user_by_id(id: int) -> User | None:
     data = read_query(
         'SELECT id, full_name, email, password, gender, role, players_id, is_verified, verification_code FROM users WHERE id = ?',
         (id,))
+    
+    if data is None:
+        return JSONResponse(status_code=404, content=f'There is no user with ID: {id}.')
 
-    return next((User.from_query_result_no_password(*row) for row in data), None)
+    return next(User.from_query_result_no_password(*row) for row in data)
 
 
 def edit_user_role(old_user: User, new_role: str):
@@ -68,7 +77,9 @@ def edit_user_role(old_user: User, new_role: str):
         password=old_user.password,
         gender=old_user.gender,
         role=new_role,
-        players_id=old_user.players_id
+        players_id=old_user.players_id,
+        is_verified=old_user.is_verified,
+        verification_code=old_user.verification_code
     )
 
     update_query('''UPDATE users SET role = ? WHERE id = ?''',
@@ -87,7 +98,9 @@ def edit_user_players_id(old_user: User, players_id: int):
         password=old_user.password,
         gender=old_user.gender,
         role=old_user.role,
-        players_id=players_id
+        players_id=players_id,
+        is_verified=old_user.is_verified,
+        verification_code=old_user.verification_code
     )
 
     update_query('''UPDATE users SET players_id = ? WHERE id = ?''',
@@ -118,8 +131,13 @@ def get_all_admin_requests() -> AdminRequests | None:
     '''
 
     data = read_query('SELECT id, type_of_request, players_id, users_id, status FROM admin_requests')
+
+    if data is None:
+        return JSONResponse(status_code=404, content='There are no requests')
     
-    return (AdminRequests.from_query_result(*row) for row in data)
+    result = (AdminRequests.from_query_result(*row) for row in data)
+
+    return result
 
 
 def get_admin_request_by_id(id: int):
@@ -134,7 +152,12 @@ def get_admin_request_by_id(id: int):
     data = read_query('SELECT id, type_of_request, players_id, users_id, status FROM admin_requests WHERE id = ?',
                       (id,))
     
-    return (AdminRequests.from_query_result(*row) for row in data)
+    if data is None:
+        return JSONResponse(status_code=404, content=f'Admin request with ID: {id} does not exist.')
+    
+    result = (AdminRequests.from_query_result(*row) for row in data)
+
+    return result
 
 
 def edit_requests_connection_status(request_status: str, players_id: int, type_of_request: str, id: int):
@@ -149,6 +172,39 @@ def edit_requests_promotion_status(request_status: str, type_of_request: str, id
 
     update_query('''UPDATE admin_requests SET status = ? WHERE type_of_request = ? and users_id = ?''',
                 (request_status, type_of_request, id))
+    
+
+def insert_blocked_player(players_id: int, ban_status: str) -> BlockedPlayers | None:
+    generated_id = insert_query(
+        'INSERT INTO blocked_players(players_id, ban_status) VALUES (?, ?)',
+        (players_id, ban_status)
+    )
+
+    return BlockedPlayers(id=generated_id, players_id=players_id, ban_status=ban_status)
+
+
+def get_all_blocked_players() -> BlockedPlayers | None:
+    ''' Search in the database and creates a list of all blocked players. 
+    
+    Returns:
+        - a list of all blocked players(id, players_id, ban_status)
+    '''
+
+    data = read_query('SELECT id, players_id, ban_status FROM blocked_players')
+
+    if data is None:
+        return JSONResponse(status_code=404, content='There are no blocked players.')
+
+    result = (BlockedPlayers.from_query_result(*row) for row in data)
+
+    return result
+
+
+def remove_blocked_player(players_id: int):
+    ''' Used for removing a blocked player from the database.'''
+
+    insert_query('''DELETE FROM blocked_players WHERE players_id = ?''',
+                 (players_id,))
 
 
 def delete_users_account(id: int, x_token: str):
@@ -160,10 +216,7 @@ def delete_users_account(id: int, x_token: str):
     
     Returns:
         - Deleted user
-    '''
-
-    if x_token == None:
-        return JSONResponse(status_code=401, content='You must be logged in and be an admin to be able to delete an user.')    
+    '''    
     
     user = get_user_or_raise_401(x_token)
     
@@ -189,9 +242,6 @@ def get_user_info_by_id_or_role(id: int, role: str, x_token: str):
     Returns:
         - user(id, full_name, email, gender, role and players_id)
     '''
-
-    if x_token == None:
-        return JSONResponse(status_code=401, content='You must be logged in and be an admin to be able to review accounts.')
     
     user = get_user_or_raise_401(x_token)
     
@@ -199,13 +249,10 @@ def get_user_info_by_id_or_role(id: int, role: str, x_token: str):
         return JSONResponse(status_code=401, content='Only admins can review accounts.')
     
     elif id != None and role != None:
-            return JSONResponse(status_code=400, content='You are allowed to search users either by id or by role, but not by both at the same time.')
+        return JSONResponse(status_code=400, content='You are allowed to search users either by id or by role, but not by both at the same time.')
     
     elif id != None and role == None:
-        if not shared_service.id_exists(id, 'users'):
-            return JSONResponse(status_code=404, content=f'User with id: {id} does not exist.')
-        else:
-            return find_user_by_id(id)
+        return find_user_by_id(id)
         
     elif role != None and id == None:
         if role != 'spectator' and role != 'player' and role != 'director' and role != 'admin':
@@ -228,17 +275,11 @@ def edit_user_by_id(id: int, new_role: str, command: str, players_id: int , x_to
     Returns:
         - Edited user
     '''
-
-    if x_token == None:
-        return JSONResponse(status_code=401, content="You must be logged in and be an admin to be able to edit accounts.")
     
     user = get_user_or_raise_401(x_token)
 
     if not User.is_admin(user):
         return JSONResponse(status_code=401, content='Only admins can edit accounts.')
-
-    elif not shared_service.id_exists(id, 'users'):
-        return JSONResponse(status_code=404, content=f'User with id: {id} does not exist.')
     
     old_user = find_user_by_id(id)
 
@@ -247,27 +288,27 @@ def edit_user_by_id(id: int, new_role: str, command: str, players_id: int , x_to
         return JSONResponse(status_code=400, content="You must enter either a new_role with a command or just a players_id.")
 
     # both are != None:
-    elif new_role != None and players_id != None:
-        return JSONResponse(status_code=401, content="You are not allowed to change the role and to add players_id at the same time.")
+    # elif new_role != None and players_id != None:
+    #     return JSONResponse(status_code=401, content="You are not allowed to change the role and to add players_id at the same time.")
     
     # new_role != None and command is not correct:
-    elif new_role != None and command == 'connection':
-        return JSONResponse(status_code=401, content="To edit user's role you must choose between 'promotion' or 'demotion' command.")
+    # elif new_role != None and command == 'connection':
+    #     return JSONResponse(status_code=401, content="To edit user's role you must choose between 'promotion' or 'demotion' command.")
     
     # players_id != None and command is not correct
     elif players_id != None and new_role == None and (command == 'demotion' or command == 'promotion' ):
         return JSONResponse(status_code=401, content="To connect user's account to his player's account you must enter 'connection' command.")
     
     # connect user's account with player's account:
-    elif new_role == None and players_id != None and command == 'connection':
+    elif new_role == 'player' and players_id != None and command == 'connection':
         if not shared_service.id_exists(players_id, 'players'):
             return JSONResponse(status_code=404, content=f'Player with id: {players_id} does not exist.')
         
         elif shared_service.players_id_exists(players_id, 'users'):
             return JSONResponse(status_code=400, content=f'Player with id: {players_id} is already connected to a user.')
         
-        elif old_user.players_id == players_id:
-            return JSONResponse(status_code=400, content=f'You are already connected to player with id: {players_id}.')
+        # elif old_user.players_id == players_id:
+        #     return JSONResponse(status_code=400, content=f'You are already connected to player with id: {players_id}.')
         
         edit_user_players_id(old_user, players_id)
         
@@ -277,8 +318,7 @@ def edit_user_by_id(id: int, new_role: str, command: str, players_id: int , x_to
         new_role = 'player'
         edit_user_role(old_user, new_role)
 
-        email_type = 'link_profile_approved'
-        email_service.send_email(old_user.email, email_type)
+        email_service.send_email(old_user.email, 'link_profile_approved')
         
         if shared_service.user_connection_request_exists(old_user.id):
             request_status = 'finished'
@@ -304,19 +344,23 @@ def edit_user_by_id(id: int, new_role: str, command: str, players_id: int , x_to
 
                 return {f"User's role is demoted to '{new_role}' and player's account is activated."}
 
-        # demote from 'director' to 'spectator'   
+        # demote from 'player' to 'spectator'   
         elif new_role == 'spectator' and command == 'demotion':
             if User.is_spectator(old_user):
                 return JSONResponse(status_code=400, content="User's role is already a 'spectator'.")
-            elif User.is_director(old_user):
+            elif User.is_player(old_user):
                 edit_user_role(old_user, new_role)
                 
                 is_connected = 0
                 player_service.edit_is_connected_in_player(is_connected, old_user.players_id)
 
+                is_active = 1
+                is_connected = 0
+                player_service.edit_is_active_in_player(is_active, old_user.full_name, is_connected)
+
                 delete_players_id_from_user(old_user.id)
 
-                return {f"User's role is demoted to '{new_role}' and player's account is disconnected from the user."}
+                return {f"User's role is demoted to '{new_role}' and player's account is disconnected from the user and is set to retired."}
         
         # promote from 'player' to 'director'
         elif new_role == 'director' and command == 'promotion':
@@ -336,46 +380,12 @@ def edit_user_by_id(id: int, new_role: str, command: str, players_id: int , x_to
                 is_connected = 1
                 player_service.edit_is_active_in_player(is_active, old_user.full_name, is_connected)
 
-                email_type = 'promotion_approved'
-                email_service.send_email(old_user.email, email_type)
+                email_service.send_email(old_user.email, 'promotion_approved')
             
                 return {f"User's role is promoted to '{new_role}' and the connected player's account is retired."}
             
-        else:
-            return JSONResponse(status_code=400, content="Unrecognized request.")
-            
     else:
         return JSONResponse(status_code=400, content="Unrecognized request.")
-    
-
-def insert_blocked_player(players_id: int, ban_status: str) -> BlockedPlayers | None:
-    generated_id = insert_query(
-        'INSERT INTO blocked_players(players_id, ban_status) VALUES (?, ?)',
-        (players_id, ban_status)
-    )
-
-    return BlockedPlayers(id=generated_id, players_id=players_id, ban_status=ban_status)
-
-
-def get_all_blocked_players() -> BlockedPlayers | None:
-    ''' Search in the database and creates a list of all blocked players. 
-    
-    Returns:
-        - a list of all blocked players(id, players_id, ban_status)
-    '''
-
-    data = read_query('SELECT id, players_id, ban_status FROM blocked_players')
-
-    result = (BlockedPlayers.from_query_result(*row) for row in data)
-
-    return result
-
-
-def remove_blocked_player(players_id: int):
-    ''' Used for removing a blocked player from the database.'''
-
-    insert_query('''DELETE FROM blocked_players WHERE players_id = ?''',
-                 (players_id,))
 
 
 def block_player_by_id(players_id: int, ban_status: str, x_token: str):
@@ -390,21 +400,21 @@ def block_player_by_id(players_id: int, ban_status: str, x_token: str):
         - Blocked player
     '''
     
-    if x_token == None:
-        return JSONResponse(status_code=401, content='You must be logged in and be an admin to be able to block a player.')
+    # if x_token == None:
+    #     return JSONResponse(status_code=401, content='You must be logged in and be an admin to be able to block a player.')
     
     user = get_user_or_raise_401(x_token)
     
     if not User.is_admin(user):
         return JSONResponse(status_code=401, content='You must be an admin to be able to block a player.')
     
-    if not shared_service.id_of_player_exists(players_id):
+    elif not shared_service.id_of_player_exists(players_id):
         return JSONResponse(status_code=404, content=f'Player with id: {players_id} does not exist.')
     
-    if not shared_service.id_of_blocked_player_exists(players_id):
+    elif not shared_service.id_of_blocked_player_exists(players_id):
         insert_blocked_player(players_id, ban_status)
     else:
-        return JSONResponse(status_code=404, content = f'Player with id: {players_id} already exists.')
+        return JSONResponse(status_code=404, content = f'Player with id: {players_id} is already blocked.')
     
     player_service.edit_is_active_in_player_by_id(players_id)
 
@@ -421,8 +431,8 @@ def find_all_blocked_players(x_token: str):
         - list of blocked players
     '''
 
-    if x_token == None:
-        return JSONResponse(status_code=401, content='You must be logged in and be an admin to see the list of blocked players.')
+    # if x_token == None:
+    #     return JSONResponse(status_code=401, content='You must be logged in and be an admin to see the list of blocked players.')
     
     user = get_user_or_raise_401(x_token)
     
@@ -441,15 +451,15 @@ def remove_block_of_player(players_id: int, x_token: str):
         - Player is unblocked.
     '''
 
-    if x_token == None:
-        return JSONResponse(status_code=401, content='You must be logged in and be an admin to be able to unblock a player.')    
+    # if x_token == None:
+    #     return JSONResponse(status_code=401, content='You must be logged in and be an admin to be able to unblock a player.')    
     
     user = get_user_or_raise_401(x_token)
     
     if not User.is_admin(user):
         return JSONResponse(status_code=401, content='You must be an admin to be able to unblock a player.')
     
-    if not shared_service.id_of_blocked_player_exists(players_id):
+    elif not shared_service.id_of_blocked_player_exists(players_id):
         return JSONResponse(status_code=404, content=f"Player with id {players_id} is not blocked.")
     
     remove_blocked_player(players_id)

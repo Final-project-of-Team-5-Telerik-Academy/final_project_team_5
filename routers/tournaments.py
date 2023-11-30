@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Query, Header, Form
 from fastapi.responses import JSONResponse
-from services import  tournament_service, shared_service, match_service, team_service, player_service
+from services import tournament_service, match_service, shared_service, player_service, team_service, user_service, email_service
 from authentication.authenticator import get_user_or_raise_401
+from pydantic import constr
 from my_models.model_user import User
 from my_models.model_match import sports_list
 from datetime import datetime
-
 
 
 tournaments_router = APIRouter(prefix='/tournaments', tags=['Tournaments'])
@@ -107,8 +107,23 @@ def add_participant_to_tournament(title: str, participant: str, token: str):
 
         elif tournament_service.is_player_in_tournament(player.id, tournament.id, table):
             return JSONResponse(status_code=400, content=f'{player.full_name} is already in {tournament.title}')
+        if tournament_service.enough_participants(tournament):
+            return JSONResponse(status_code=400, content=f'The tournament allows only {tournament.number_participants} participants.')
 
-        output.append(tournament_service.add_player_to_tournament(player, tournament))
+        result = tournament_service.add_player(player, tournament)
+        output.append(result)
+
+        participants = tournament_service.get_participant(tournament)
+        
+        for p in participants:
+            users_account = user_service.players_id_exists_in_users(p['id'], p['name'])
+            if users_account != None:
+                email_service.send_email(users_account.email, 'added_to_tournament')
+        
+        difference = tournament.number_participants - len(participants)
+        if difference > 0:
+            output.append(f'you need {difference} participants to complete the tournament.')
+            return output
 
 
     elif tournament.game_type == 'team game':
