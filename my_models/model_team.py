@@ -24,3 +24,20 @@ class Team(BaseModel):
             number_of_players=number_of_players,
             owners_id=owners_id
             )
+    
+    
+    # За да работи теста: test_get_team_by_name в TeamsTests
+    @classmethod
+    def from_query_result_additional(cls, team_data):
+        ''' When query is used in another function.
+        
+        Returns:
+            - id, team_name, number_of_players, owners_id
+        '''
+
+        return cls(
+            id=team_data[0],
+            team_name=team_data[1],
+            number_of_players=team_data[2],
+            owners_id=team_data[3]
+            )

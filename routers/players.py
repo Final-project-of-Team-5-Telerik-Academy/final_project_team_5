@@ -27,7 +27,7 @@ def create_player(full_name: str = Query(..., description='Enter full name of pl
 
 
 @players_router.get('/', description= 'Show all players:')
-def find_all_players(x_token: str = Header(..., description='Your identification token:')):
+def find_all_players():
     ''' Used to get all player accounts.
     
     Args:
@@ -37,11 +37,11 @@ def find_all_players(x_token: str = Header(..., description='Your identification
         - list of all player accounts
     '''
 
-    return player_service.find_all_player_accounts(x_token)
+    return player_service.find_all_player_accounts()
 
 
 @players_router.get('/id', description='Find player:')
-def find_player_by_id(id:int = Query(..., description='Enter id of the player:'), x_token: str = Header()):
+def find_player_by_id(id:int = Query(..., description='Enter id of the player:')):
     ''' Used to get a player account by id.
     
     Args:
@@ -51,7 +51,7 @@ def find_player_by_id(id:int = Query(..., description='Enter id of the player:')
         - player account
     '''
 
-    return player_service.find_player_account_by_id(id, x_token)
+    return player_service.find_player_account_by_id(id)
     
 
 @players_router.delete('/id', description='Delete player:')

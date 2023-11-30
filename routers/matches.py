@@ -1,7 +1,10 @@
 from fastapi import APIRouter, Query, Header, Form
 from fastapi.responses import JSONResponse
-from services import match_service, team_service, shared_service, tournament_service, player_service
+from services import match_service, date_service
 from authentication.authenticator import get_user_or_raise_401
+from services import team_service, shared_service, tournament_service, player_service
+from services import email_service
+from services import user_service
 from my_models.model_user import User
 from my_models.model_match import sports_list
 from datetime import datetime
@@ -61,6 +64,40 @@ def create_match(token: str,
 
     shared_service.check_date_format(date)
     date = datetime.strptime(date, "%Y-%m-%d").date()
+    output = []
+# get player 1
+    existing_player = player_service.get_player_by_full_name(participant_1)
+    if existing_player is None:
+        participant_1 = player_service.create_player(participant_1, 'add country', 'add sport club')
+        participant_1 = participant_1.full_name
+        output.append({"Warning": f'''Participant 1 dose not exist in the system. 
+                    We've created profile for him, but it is uncompleted. You must finish it!'''})
+    else:
+        if not existing_player.is_active:
+            return f'{existing_player} is not active player.'
+        
+        users_account = user_service.players_id_exists_in_users(existing_player.id, existing_player.full_name)
+        if users_account != None:
+            email_service.send_email(users_account.email, 'added_to_match')
+
+        participant_1 = existing_player.full_name
+
+# get player 2
+    existing_player = player_service.get_player_by_full_name(participant_2)
+    if existing_player is None:
+        participant_2 = player_service.create_player(participant_2, 'add country', 'add sport club')
+        participant_2 = participant_2.full_name
+        output.append({"Warning": f'''Participant 1 dose not exist in the system. 
+                    We've created profile for him, but it is uncompleted. You must finish it!'''})
+    else:
+        if not existing_player.is_active:
+            return f'{existing_player} is not active player.'
+        
+        users_account = user_service.players_id_exists_in_users(existing_player.id, existing_player.full_name)
+        if users_account != None:
+            email_service.send_email(users_account.email, 'added_to_match')
+
+        participant_2 = existing_player.full_name
 
     if participant_1 == participant_2:
         return JSONResponse(status_code=400, content='Choose different players')
