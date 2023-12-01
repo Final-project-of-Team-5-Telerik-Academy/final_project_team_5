@@ -43,8 +43,12 @@ def view_tournament_participants(title: str):
     output = []
     output.append(tournament_service.get_tournament_by_title(title))
     output.append('-= PARTICIPANTS =-')
-    output.append(tournament_service.get_participants(tournament))
 
+    participants = tournament_service.get_participants(tournament)
+    if not participants:
+        return {'message': f'Tournament {title} has no added participants'}
+
+    output.append(participants)
     return output
 
 
@@ -94,26 +98,29 @@ def add_participant_to_tournament(title: str, participant: str, token: str):
 
     table = None
     output = []
+
+# ONE ON ONE GAME
     if tournament.game_type == 'one on one':
         table = 'players'
         enough = tournament_service.enough_participants(tournament)
         if enough:
             return enough
 
-        player = player_service.get_player_by_full_name(participant)
+        player = match_service.get_player_by_full_name_v2(participant)
         if player is None:
-            player = match_service.check_create_player(participant)
+            player = player_service.create_player(participant, 'add country', 'add sports club')
             output.append({'warning': f'{participant} is new to the system. We have created a profile for him but it needs to be completed'})
 
         elif tournament_service.is_player_in_tournament(player.id, tournament.id, table):
             return JSONResponse(status_code=400, content=f'{player.full_name} is already in {tournament.title}')
-        if tournament_service.enough_participants(tournament):
-            return JSONResponse(status_code=400, content=f'The tournament allows only {tournament.number_participants} participants.')
 
-        result = tournament_service.add_player(player, tournament)
+        if player.is_active == 1:  # 0 when player is active, 1 when player is not active
+            return {'message': f'{player.full_name} is not active player.'}
+
+        result = tournament_service.add_player_to_tournament(player, tournament)
         output.append(result)
 
-        participants = tournament_service.get_participant(tournament)
+        participants = tournament_service.get_participants(tournament)
         
         for p in participants:
             users_account = user_service.players_id_exists_in_users(p['id'], p['name'])
@@ -125,10 +132,10 @@ def add_participant_to_tournament(title: str, participant: str, token: str):
             output.append(f'you need {difference} participants to complete the tournament.')
             return output
 
-
+# TEAMS GAME
     elif tournament.game_type == 'team game':
         table = 'teams'
-        team = team_service.get_team_by_name(participant)
+        team = match_service.get_team_by_name_v2(participant)
         if team is None:
             return JSONResponse(status_code=404, content=f'Team {participant} not found.')
         if tournament_service.is_player_in_tournament(team.id, tournament.id, table):
@@ -159,9 +166,9 @@ def delete_tournament_by_title(title: str, token: str):
 
 
 
-" 6. CREATE KNOCKOUT STAGE"
+" 6. ARRANGE TOURNAMENT MATCHES"
 @tournaments_router.post('/stage/{title}')
-def arrange_knockout_stage(title: str, token: str):
+def arrange_tournament_matches(title: str, token: str, matches_per_day: int | None = None):
     creator = get_user_or_raise_401(token)
     if not (User.is_director(creator) or User.is_admin(creator)):
         return JSONResponse(status_code=403, content='Only Admin and Director can create a match')
@@ -169,74 +176,59 @@ def arrange_knockout_stage(title: str, token: str):
     tournament = tournament_service.get_tournament_by_title(title)
     if not tournament:
         return JSONResponse(status_code=404, content=f'{title} not found')
-    if tournament.t_format != 'knockout':
-        return JSONResponse(status_code=400, content='knockout format is not aloud for tournament type "league"')
-
-    stage = tournament_service.create_knockout_stage(tournament)
-    return stage
-
-
-
-
-" 7. ARRANGE LEAGUE"
-@tournaments_router.post('/league/{title}')
-def arrange_league(title: str, matches_per_days: int, token: str):
-    creator = get_user_or_raise_401(token)
-    if not (User.is_director(creator) or User.is_admin(creator)):
-        return JSONResponse(status_code=403, content='Only Admin and Director can create a match')
-
-    tournament = tournament_service.get_tournament_by_title(title)
-    if not tournament:
-        return JSONResponse(status_code=404, content=f'{title} not found')
-    if tournament.t_format != 'league':
-        return JSONResponse(status_code=400, content="League format is not aloud for tournament type 'knockout'")
-
-    league = tournament_service.arrange_league(tournament, matches_per_days)
-    return league
+    if match_service.get_matches_by_tournament(title):
+        return JSONResponse(status_code=400, content=f"{title} already has created matches.")
+# KNOCKOUT
+    if tournament.t_format == 'knockout':
+        stage = tournament_service.create_knockout_stage(tournament)
+        return stage
+# LEAGUE
+    elif tournament.t_format == 'league':
+        league = tournament_service.arrange_league(tournament, matches_per_day)
+        return league
 
 
 
 
-" 8. GET LEAGUE RESULTS"
+" 8. ENTER LEAGUE WINNER"
 @tournaments_router.get('/{title}/results')
-def get_league_results(title: str):
+def enter_league_winner(title: str, token: str):
+    creator = get_user_or_raise_401(token)
+    if not User.is_admin(creator):
+        return JSONResponse(status_code=403, content='Only Admin can create a match')
+
     tournament = tournament_service.get_tournament_by_title(title)
     if tournament.t_format != 'league':
-        return JSONResponse(status_code=400, content='This tournament format is not "league"')
-
-    participants_list = tournament_service.get_participants(tournament)
+        return JSONResponse(status_code=400, content="This tournament format is not 'league'")
 
     matches = match_service.get_matches_by_tournament(title)
     for match in matches:
         if match.winner == 'not played':
             return JSONResponse(status_code=400, content='All matches must be finished before calculation')
+    if tournament_service.has_winner(title) != 'Not finished yet':
+        return JSONResponse(status_code=400, content='The tournament si already finished')
 
-    score_data = match_service.get_participants_points_for_tournament(title)
-    return score_data
+    if tournament.game_type == 'one on one':
+        p_type = 'player'
+    else:
+        p_type = 'team'
 
-
-
-
-" 8. TOURNAMENT SIMULATION"
-@tournaments_router.get('/simulate/{title}')
-def tournament_simulation(token: str, title: str):
-    creator = get_user_or_raise_401(token)
-    if not (User.is_director(creator) or User.is_admin(creator)):
-        return JSONResponse(status_code=403, content='Only Admin and Director can simulate a matches results')
-
-    tournament = tournament_service.get_tournament_by_title(title)
     output = []
-    output.append(f'-= {tournament.title} SIMULATION RESULTS =-')
+    score_data = tournament_service.get_league_participants_points_for_tournament(tournament)
+    output.append(f'-= {tournament.title} RESULTS =-')
+    output.append(tournament)
+    winner = score_data[0]
+    winner_n = str(winner.values())
+    winner_name = str(winner_n[14:-3])
+    output.append(f'The winner is: {winner_name}!')
+    output.append(score_data)
+    tournament_service.add_tournament_trophy(winner_name, p_type, tournament.title)
 
-    if tournament.t_format == 'league':
-        tournament_service.simulate_league_tournament(tournament)
-        output.append(match_service.get_matches_by_tournament(title))
 
-    elif tournament.t_format == 'knockout':
-        tournament_service.simulate_knockout_tournament_matches(tournament)
-        output.append(match_service.get_matches_by_tournament(title))
-
+    tournament_service.set_winner(title, winner_name)
     return output
+
+
 
 
 

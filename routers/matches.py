@@ -1,10 +1,7 @@
-from fastapi import APIRouter, Query, Header, Form
+from fastapi import APIRouter, Query, Form
 from fastapi.responses import JSONResponse
-from services import match_service, date_service
 from authentication.authenticator import get_user_or_raise_401
-from services import team_service, shared_service, tournament_service, player_service
-from services import email_service
-from services import user_service
+from services import shared_service, tournament_service, player_service, match_service, email_service, user_service
 from my_models.model_user import User
 from my_models.model_match import sports_list
 from datetime import datetime
@@ -31,6 +28,8 @@ def view_matches_by_tournament(title: str):
     if tournament is None:
         return JSONResponse(status_code=404, content=f'Tournament with name {title} not found.')
     result = match_service.get_matches_by_tournament(title)
+    if not result:
+        return JSONResponse(status_code=404, content=f"There are no matches for {title}.")
     return result
 
 
@@ -43,6 +42,7 @@ def view_match_by_id(id: int):
     if not result:
         return JSONResponse(status_code=404, content=f'There is no match with id {id}.')
     return result
+
 
 
 
@@ -64,74 +64,56 @@ def create_match(token: str,
 
     shared_service.check_date_format(date)
     date = datetime.strptime(date, "%Y-%m-%d").date()
-    output = []
-# get player 1
-    existing_player = player_service.get_player_by_full_name(participant_1)
-    if existing_player is None:
-        participant_1 = player_service.create_player(participant_1, 'add country', 'add sport club')
-        participant_1 = participant_1.full_name
-        output.append({"Warning": f'''Participant 1 dose not exist in the system. 
-                    We've created profile for him, but it is uncompleted. You must finish it!'''})
-    else:
-        if not existing_player.is_active:
-            return f'{existing_player} is not active player.'
-        
-        users_account = user_service.players_id_exists_in_users(existing_player.id, existing_player.full_name)
-        if users_account != None:
-            email_service.send_email(users_account.email, 'added_to_match')
-
-        participant_1 = existing_player.full_name
-
-# get player 2
-    existing_player = player_service.get_player_by_full_name(participant_2)
-    if existing_player is None:
-        participant_2 = player_service.create_player(participant_2, 'add country', 'add sport club')
-        participant_2 = participant_2.full_name
-        output.append({"Warning": f'''Participant 1 dose not exist in the system. 
-                    We've created profile for him, but it is uncompleted. You must finish it!'''})
-    else:
-        if not existing_player.is_active:
-            return f'{existing_player} is not active player.'
-        
-        users_account = user_service.players_id_exists_in_users(existing_player.id, existing_player.full_name)
-        if users_account != None:
-            email_service.send_email(users_account.email, 'added_to_match')
-
-        participant_2 = existing_player.full_name
-
-    if participant_1 == participant_2:
-        return JSONResponse(status_code=400, content='Choose different players')
 
     output = []
     if game_type == 'one on one':
-        player_1 = player_service.get_player_by_full_name(participant_1)
-        if player_1 is None:
-            participant_1 = match_service.check_create_player(participant_1)
+# ONE ON ONE
+# player 1
+        existing_player = match_service.get_player_by_full_name_v2(participant_1)
+        if existing_player is None:
+            participant_1 = player_service.create_player(participant_1, 'add country', 'add sports club')
             participant_1 = participant_1.full_name
             output.append({'warning': f'{participant_1} is new to the system. We have created a profile for him but it needs to be completed'})
+        else:
+            if existing_player.is_active == 1:  # 0 when player is active, 1 when player is not active
+                return {'message': f'{existing_player.full_name} is not active player.'}
 
-        player_2 = player_service.get_player_by_full_name(participant_2)
-        if player_2 is None:
-            participant_2 = match_service.check_create_player(participant_2)
+            users_account = user_service.players_id_exists_in_users(existing_player.id, existing_player.full_name)
+            if users_account != None:
+                email_service.send_email(users_account.email, 'added_to_match')
+
+# player 2
+        existing_player = match_service.get_player_by_full_name_v2(participant_2)
+        if existing_player is None:
+            participant_2 = player_service.create_player(participant_2, 'add country', 'add sports club')
             participant_2 = participant_2.full_name
             output.append({'warning': f'{participant_2} is new to the system. We have created a profile for him but it needs to be completed'})
+        else:
+            if existing_player.is_active == 1:  # 0 when player is active, 1 when player is not active
+                return {'message': f'{existing_player.full_name} is not active player.'}
 
-        # output.append(match_service.check_create_player(participant_1))
-        # output.append(match_service.check_create_player(participant_2))
+            users_account = user_service.players_id_exists_in_users(existing_player.id, existing_player.full_name)
+            if users_account != None:
+                email_service.send_email(users_account.email, 'added_to_match')
 
+
+# TEAM GAME
     elif game_type == 'team game':
-        participant_1 = team_service.get_team_by_name(participant_1)
-        if not participant_1:
+        existing_team = match_service.get_team_by_name_v2(participant_1)
+        if not existing_team:
             return JSONResponse(status_code=404, content=f'Team {participant_1} does not exist in te system')
-        participant_1 = participant_1.team_name
+        participant_1 = existing_team.team_name
 
-        participant_2 = team_service.get_team_by_name(participant_2)
-        if not participant_2:
+        existing_team = match_service.get_team_by_name_v2(participant_2)
+        if not existing_team:
             return JSONResponse(status_code=404, content=f'Team {participant_2} does not exist in te system')
-        participant_2 = participant_2.team_name
+        participant_2 = existing_team.team_name
+
+    if participant_1 == participant_2:
+        return JSONResponse(status_code=400, content='The participants must be different .')
 
     match = match_service.create_match(match_format, game_type, sport, participant_1,
-            participant_2, user.full_name, date, tournament_name)
+                                       participant_2, user.full_name, date, tournament_name)
     output.append(f'-= {participant_1} vs {participant_2} =-')
     output.append(match)
 
@@ -139,12 +121,11 @@ def create_match(token: str,
 
 
 
+
 " 4. ENTER MATCH WINNER"
 @matches_router.put('/')
 def enter_match_winner(token: str, match_id: int,
-                       p1_name: str = Query(description='Enter participant 1 name'),
                        p1_score: float = Query(description='Enter participant 1 score'),
-                       p2_name: str = Query(description='Enter participant 2 name'),
                        p2_score: float = Query(description='Enter participant 2 score')):
 
     user = get_user_or_raise_401(token)
@@ -159,13 +140,10 @@ def enter_match_winner(token: str, match_id: int,
         return JSONResponse(status_code=400,
             content=f'The winner of match {match.id} is already set to {match.winner}.')
 
-    if match.participant_1 != p1_name and match.participant_2 != p2_name:
-        return JSONResponse(status_code=400, content=f"Wrong participants names")
+    if match.tournament_name != 'not part of a tournament':
+        title = match.tournament_name
 
-    participant_1 = player_service.get_player_by_full_name(match.participant_1)
-    participant_2 = player_service.get_player_by_full_name(match.participant_2)
-    winner = match_service.enter_match_winner(match, participant_1, p1_score, participant_2, p2_score)
-
+    winner = match_service.enter_match_winner(match, p1_score, p2_score, title)
     return winner
 
 
@@ -197,6 +175,8 @@ def delete_matches_by_tournament(title: str, token: str):
     output = []
     output.append({'message': f'All matches from tournament {title} has been deleted'})
     matches = match_service.get_matches_by_tournament(title)
+    if not matches:
+        return JSONResponse(status_code=404, content=f"There are no matches for tournament '{title}'")
     for match in matches:
         result = match_service.delete_match(match.id)
         output.append(result)
@@ -212,63 +192,14 @@ def matches_simulations(token: str):
     if not (User.is_director(creator) or User.is_admin(creator)):
         return JSONResponse(status_code=403, content='Only Admin and Director can simulate a matches results')
 
+    output = []
     result = match_service.matches_simulations()
-    return result
+    if not result:
+        return {'message': 'Not available matches for simulation'}
+    else:
+        output.append('-= MATCHES SIMULATIONS RESULTS =-')
+        output.append(result)
+        return output
 
-
-
-
-
-"UPDATE MATCH" # TODO
-# @matches_router.put('/update/{date}')
-# def update_match_date(token, current_title: str, new_date: str):
-#     current_table = 'matches'
-#     column = 'date'
-#     format_date = datetime.strptime(new_date, "%Y-%m-%d").date()
-#
-# # check if authenticated
-#     user = get_user_or_raise_401(token)
-#
-# # check admin or creator
-#     creator_name = shared_service.get_creator_full_name(current_table, current_title)
-#     if not (user.full_name == creator_name or User.is_admin(user)):
-#         return JSONResponse(status_code=403, content='Only Admin and creator can assign players to match')
-#
-# # check if the date is in the future
-#     if not date_service.date_is_in_future(format_date):
-#         today = date_service.current_date()
-#         return JSONResponse(status_code=400, content=f"Today is {today}. You must choose date in th future")
-#
-# # update match date
-#     match_service.update_match_details(current_title, column, format_date)
-#     return {f'Match "{current_title}" moved to a date of "{format_date}"'}
-
-
-
-# @matches_router.put('/update/{format}')
-# def update_match_date(token, current_title: str, new_format: str):
-#     current_table = 'matches'
-#     column = 'date'
-#
-# # check if authenticated
-#     user = get_user_or_raise_401(token)
-#
-# # check admin or creator
-#     creator_name = shared_service.get_creator_full_name(current_table, current_title)
-#     if not (user.full_name == creator_name or User.is_admin(user)):
-#         return JSONResponse(status_code=403, content='Only Admin and creator can assign players to match')
-#
-# # check if the date is in the future
-#     if not date_service.date_is_in_future(format_date):
-#         today = date_service.current_date()
-#         return JSONResponse(status_code=400, content=f"Today is {today}. You must choose date in th future")
-#
-# # update match date
-#     match_service.update_match_details(current_title, column, format_date)
-#     return {f'Match "{current_title}" moved to a date of "{format_date}"'}
-#
-
-#                          match_format: constr(pattern='^time limit|score limit$'),
-#                          prize: conint(gt=-1)):
 
 
