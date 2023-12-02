@@ -72,7 +72,7 @@ def create_tournament(title: str, number_participants: int, t_format: str, match
 
 
 
-def add_player_to_tournament(player: Player, tournament: Tournament, stage=1):
+def add_player_to_tournament(player: Player, tournament: Tournament, stage=0):
     insert_query('''INSERT INTO tournaments_players (players_id, player_name, tournaments_id, tournaments_title, stage) 
                 VALUES (?, ?, ?, ?, ?)''', (player.id, player.full_name, tournament.id, tournament.title, stage))
 
@@ -80,7 +80,7 @@ def add_player_to_tournament(player: Player, tournament: Tournament, stage=1):
 
 
 
-def add_team(team: Team, tournament: Tournament, stage=1):
+def add_team_to_tournament(team: Team, tournament: Tournament, stage=0):
     insert_query('''INSERT INTO tournaments_teams (teams_id, teams_name, tournaments_id, tournaments_title, stage) 
                 VALUES (?, ?, ?, ?, ?)''', (team.id, team.team_name, tournament.id, tournament.title, stage))
     return {'message': f'{team.team_name} joined the {tournament.title}'}
@@ -157,9 +157,7 @@ def need_or_complete(tournament: Tournament, table: str):
         return {'message': f'you need {difference} participants to complete the tournament.'}
 
     elif difference == 0:
-        update_query('UPDATE tournaments SET is_complete = 1, stage = 1 WHERE title = ?',
-                     (tournament.title,))
-        update_query(f'UPDATE tournaments_{table} SET stage = 1 WHERE tournaments_title = ?',
+        update_query('UPDATE tournaments SET is_complete = 1 WHERE title = ?',
                      (tournament.title,))
         return {'message': f'{tournament.title} is ready to begin.'}
 
@@ -172,6 +170,11 @@ def create_knockout_stage(tournament: Tournament):
     participants_list = get_participants(tournament, tournament.stage)
     number_matches = len(participants_list) // 2
 
+# set next tournament stage
+    update_query('UPDATE tournaments SET stage = ? WHERE title = ?',
+                 (tournament.stage + 1, tournament.title))
+
+    stage = 0
     output = []
     for t_match in range(1, number_matches + 1):
     # choose participants
@@ -189,18 +192,16 @@ def create_knockout_stage(tournament: Tournament):
         creator_name = user_service.get_user_full_name_by_id(tournament.creator)
         stage_date = tournament.date + timedelta(days=1)
         t_title = tournament.title
-        stage = tournament.stage
+        stage = tournament.stage + 1
 
         match = match_service.create_match(match_format, game_type, sport, participant_1_name,
                                participant_2_name, creator_name, stage_date, t_title, stage)
         output.append(match)
 
-# set next tournament stage
-    new_stage = int(tournament.stage) + 1
-    title = tournament.title
-    update_query('UPDATE tournaments SET stage = ? WHERE title = ?',
-                 (new_stage, title))
-
+# update match participants stage
+    table = participant_type(tournament)
+    update_query(f'UPDATE tournaments_{table}s SET stage = ? WHERE tournaments_title = ?',
+                 (stage, tournament.title,))
     return output
 
 
@@ -362,7 +363,7 @@ def get_league_participants_points_for_tournament(tournament: Tournament):
         result_dict = {round(score, 2) : participant_name}
         all_results.append(result_dict)
 
-    sorted_list = sorted(all_results, key=lambda d: list(d.keys())[0], reverse=True)
+    sorted_list = sorted(all_results, key=lambda d: list(d.keys())[0])
     return sorted_list
 
 
@@ -398,3 +399,11 @@ def has_winner(title: str):
                           (title,))
 
     return row_data[0][0]
+
+
+def participant_type(tournament: Tournament):
+    if tournament.game_type == 'one on one':
+        t_table = 'player'
+    else:
+        t_table = 'team'
+    return t_table

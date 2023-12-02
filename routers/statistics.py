@@ -16,10 +16,10 @@ def single_player_or_team_statistics(name: str,
         if existing_player is None:
             return JSONResponse(status_code=404, content=f'{name} is not found')
         participant_name = existing_player.full_name
-    else:
+    else:   # team
         existing_team = match_service.get_team_by_name_v2(name)
         if existing_team is None:
-            return JSONResponse(status_code=404, content=f'{name} is not found')
+            return JSONResponse(status_code=404, content=f'The team {name} is not found')
         participant_name = existing_team.team_name
 
     result = statistic_service.get_single_player_team_statistics(participant_name, matches, type)

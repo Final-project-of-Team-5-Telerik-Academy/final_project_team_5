@@ -143,7 +143,7 @@ def enter_match_winner(token: str, match_id: int,
     if match.tournament_name != 'not part of a tournament':
         title = match.tournament_name
 
-    winner = match_service.enter_match_winner(match, p1_score, p2_score, title)
+    winner = match_service.enter_match_winner(match, p1_score, p2_score)
     return winner
 
 

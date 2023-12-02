@@ -24,7 +24,7 @@ def view_all_tournaments(sort: str = Form('asc', enum=['asc', 'desc']),
 
 " 2. VIEW TOURNAMENT BY TITLE"
 @tournaments_router.get('/{title}')
-def get_tournament_by_title(title: str):
+def view_tournament_by_title(title: str):
     tournament = tournament_service.get_tournament_by_title(title)
     if not tournament:
         return JSONResponse(status_code=404, content=f'{title} not found')
@@ -59,7 +59,7 @@ def view_tournament_participants(title: str):
 def create_tournament(token: str = Header(),
                       title: str = Query(min_length=5),
                       number_participants: int = Form(..., enum=[4, 8, 16, 32, 64, 128]),
-                      t_format: str = Form(..., enum=['knockout', 'league']),
+                      t_format: str = Form('league', enum=['league', 'knockout']),
                       match_format: str = Form(..., enum=['time limit', 'score limit']),
                       sport: str = Form(..., enum=sports_list),
                       game_type: str = Form(..., enum=['one on one', 'team game']),
@@ -141,7 +141,7 @@ def add_participant_to_tournament(title: str, participant: str, token: str):
         if tournament_service.is_player_in_tournament(team.id, tournament.id, table):
             return JSONResponse(status_code=400, content=f'{team.team_name} is already in {tournament.title}')
 
-        output.append(tournament_service.add_team(team, tournament))
+        output.append(tournament_service.add_team_to_tournament(team, tournament))
 
     output.append(tournament_service.need_or_complete(tournament, table))
     return output

@@ -84,7 +84,7 @@ def get_match_by_id(id: int):
 
 " 3. CREATE A MATCH"
 def create_match(match_format: str, game_type: str, sport: str, participant_1: str,
-                 participant_2: str, creator_name: str, date: date, t_title: str, stage: int=1):
+                 participant_2: str, creator_name: str, date: date, t_title: str, stage: int = 0):
     winner = 'not played'
     generated_match = insert_query('''INSERT INTO matches (match_format, game_type, sport, participant_1, 
                                     participant_2, creator, date, winner, tournament_name, stage) 
@@ -155,11 +155,12 @@ def enter_match_winner(match: Match, p1_score: float, p2_score: float, tournamen
 # check tournament stage - the new tournament stage is set after matches creation
     t_title = match.tournament_name
     flag = None
-    new_t_stage = 0
+    stage = 0
     if t_title != 'not part of a tournament':
         flag = True
         new_t_stage = read_query('SELECT stage FROM tournaments WHERE title = ?',
-                                     (t_title,))
+                                   (t_title,))
+        stage = new_t_stage[0][0]
 
 # THE WINNER
     p1_stage, p2_stage = 0, 0
@@ -167,19 +168,26 @@ def enter_match_winner(match: Match, p1_score: float, p2_score: float, tournamen
         winner = p1_name
         p1_win, p1_loss = 1, 0
         p2_win, p2_loss = 0, 1
-        p1_stage = new_t_stage if flag else match.stage
+        if flag:
+            p1_stage = stage
+            p2_stage = stage-1
+        else:
+            p2_stage = match.stage
 
     elif p1_score < p2_score:
         winner = p2_name
         p1_win, p1_loss = 0, 1
         p2_win, p2_loss = 1, 0
-        p2_stage = new_t_stage if flag else match.stage
-
+        if flag:
+            p1_stage = stage-1
+            p2_stage = stage
+        else:
+            p2_stage = match.stage
     else:
         winner = 'draw'
         p1_win, p1_loss = 0, 0
         p2_win, p2_loss = 0, 0
-        p2_stage, p2_score = match.stage, match.stage
+        p1_stage, p2_stage = stage-1, stage # on draw p1 gets walkover (служебна победа)
 
 # update match winner
     update_query('''UPDATE matches SET winner = ? WHERE id = ?''',
@@ -210,8 +218,12 @@ def enter_match_winner(match: Match, p1_score: float, p2_score: float, tournamen
                       stage = p2_stage)
 
     if winner == 'draw':
-        return {'message': 'This match ended in a draw.'}
-    return {'message': f'The winner ot match with id {match.id} is set to {winner}. Results {p1_name} vs {p2_name} - {p1_score} : {p2_score}!'}
+        return {'message': f'Match id: {match.id} ended in a draw.'}
+    elif winner == 'draw' and flag:
+        return {'message': f'Match id: {match.id}, part of {t_title}, ended in a draw.'}
+    elif flag:
+        return {'message': f'The winner ot match  id: {match.id}, part of {t_title}, is {winner}. Results {p1_name} vs {p2_name} - {p1_score} : {p2_score}!'}
+    return {'message': f'The winner ot match id: {match.id} is {winner}. Results {p1_name} vs {p2_name} - {p1_score} : {p2_score}!'}
 
 
 
