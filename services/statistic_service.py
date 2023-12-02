@@ -3,24 +3,30 @@ from fastapi.responses import JSONResponse
 
 
 
-def get_player_statistics(player_name:str, wanted_matches: str):
-    all_matches = read_query('''SELECT player_name, opponent_name, win, loss, matches_id, tournament_name, date 
-                            FROM players_statistics WHERE player_name = ? ORDER BY date''', (player_name,))
-    if len(all_matches) == 0:
-        return JSONResponse(status_code=404, content=f'{player_name} has no statistics yet.')
 
-    wins_data = read_query('SELECT win FROM players_statistics WHERE player_name = ?', (player_name,))
-    losses_data = read_query('SELECT loss FROM players_statistics WHERE player_name = ?', (player_name,))
-    tournaments_played_data = read_query('SELECT COUNT(*) FROM players_statistics WHERE tournament_name is not NULL AND player_name = ?', (player_name,))
-    tournaments_trophy_data = read_query('SELECT tournament_trophy FROM players_statistics WHERE player_name = ?', (player_name,))
-    most_often_played_opponent_data = read_query('''SELECT opponent_name, COUNT(opponent_name) AS occurrence_count
-                                                FROM players_statistics WHERE opponent_name <> ?
-                                                GROUP BY opponent_name ORDER BY occurrence_count DESC LIMIT 1''', (player_name,))
-    best_opponent_data = read_query(f'''SELECT opponent_name, COUNT(*) AS win_count FROM players_statistics
-                                        WHERE player_name = '{player_name}' AND win = 1 GROUP BY opponent_name 
+"TEAM STATISTICS"
+def get_single_player_team_statistics(name:str, wanted_matches: str, p_type: str):
+    all_matches = read_query(f'''SELECT {p_type}_name, opponent_name, win, loss, matches_id, tournament_name, date 
+                            FROM {p_type}s_statistics WHERE {p_type}_name = ? ORDER BY date''', (name,))
+    if len(all_matches) == 0:
+        return JSONResponse(status_code=404, content=f'{name} has no statistics yet.')
+
+    wins_data = read_query(f'SELECT win FROM {p_type}s_statistics WHERE {p_type}_name = ?', (name,))
+    losses_data = read_query(f'SELECT loss FROM {p_type}s_statistics WHERE {p_type}_name = ?', (name,))
+    tournaments_played_data = read_query(f'''SELECT COUNT(*) FROM {p_type}s_statistics 
+                                         WHERE tournament_name is not NULL AND {p_type}_name = ?''',
+                                         (name,))
+    tournaments_trophy_data = read_query(f'''SELECT tournament_trophy FROM {p_type}s_statistics 
+                                         WHERE {p_type}_name = ?''', (name,))
+    most_often_played_opponent_data = read_query(f'''SELECT opponent_name, COUNT(opponent_name) AS occurrence_count
+                                                FROM {p_type}s_statistics WHERE opponent_name <> ?
+                                                GROUP BY opponent_name ORDER BY occurrence_count DESC LIMIT 1''',
+                                                 (name,))
+    best_opponent_data = read_query(f'''SELECT opponent_name, COUNT(*) AS win_count FROM {p_type}s_statistics
+                                        WHERE {p_type}_name = '{name}' AND win = 1 GROUP BY opponent_name 
                                         ORDER BY win_count DESC LIMIT 1''')
-    worst_opponent_data = read_query(f'''SELECT opponent_name, COUNT(*) AS loss_count FROM players_statistics
-                                        WHERE player_name = '{player_name}' AND loss = 1 GROUP BY opponent_name 
+    worst_opponent_data = read_query(f'''SELECT opponent_name, COUNT(*) AS loss_count FROM {p_type}s_statistics
+                                        WHERE {p_type}_name = '{name}' AND loss = 1 GROUP BY opponent_name 
                                         ORDER BY loss_count DESC LIMIT 1''')
 
     wins = sum([el[0] for el in wins_data])
@@ -40,7 +46,7 @@ def get_player_statistics(player_name:str, wanted_matches: str):
 
     results_list = []
     results_list.append('-= SUMMARY =-')
-    header = {'name': f'{player_name}',
+    header = {'name': f'{name}',
               'total wins': wins,
               'total losses': losses,
               'tournaments played': tournaments_played,
@@ -75,6 +81,7 @@ def get_player_statistics(player_name:str, wanted_matches: str):
         return JSONResponse(status_code=400, content="You can choose between: all / wins / losses.")
 
     return results_list
+
 
 
 
@@ -148,6 +155,8 @@ def losses_matches_convertor(all_matches):
     return data
 
 
+
+
 def all_players_statistics(sort: str, order: str):
     row_data = read_query(
         f'''SELECT p.id, p.full_name, p.country, p.sports_club, p.is_active,
@@ -155,7 +164,7 @@ def all_players_statistics(sort: str, order: str):
         SUM(ps.loss) AS losses,
         COUNT(DISTINCT ps.matches_id) AS matches,
         COUNT(DISTINCT ps.tournament_name) AS tournaments_played,
-        SUM(ps.tournament_trophy) AS tournaments_trophies
+        SUM(ps.tournament_trophy) AS tournaments_wins
         FROM players p
         LEFT JOIN players_statistics ps ON p.id = ps.players_id
         GROUP BY p.id, p.full_name, p.country, p.sports_club, p.is_active
@@ -175,8 +184,8 @@ def all_players_statistics(sort: str, order: str):
         trophies = (0 if row[9] is None else row[9])
 
         data_dict = {
-            'player id':  player_id,
-            'player name': player_name,
+            'id':  player_id,
+            'name': player_name,
             'country': country,
             'sports club': sports_club,
             'is active': is_active,
@@ -184,10 +193,45 @@ def all_players_statistics(sort: str, order: str):
             'loss': loss,
             'matches': matches,
             'tournaments': tournaments,
-            'trophies': trophies
-        }
+            'trophies': trophies}
         data.append(data_dict)
 
+    return data
+
+
+
+def all_teams_statistics(sort: str, order: str):
+    row_data = read_query(
+        f'''SELECT t.id, t.team_name
+        SUM(ts.win) AS wins
+        SUM(ts.loss) AS losses
+        COUNT(DISTINCT ts.matches_id) AS matches,
+        COUNT(DISTINCT ts.tournament_name) AS tournaments_played,
+        SUM(ts.tournament_trophy) AS tournaments_wins
+        FROM teams t
+        LEFT JOIN teams_statistics ps ON t.id = ts.teams_id
+        GROUP BY t.id, t.team_name
+        ORDER BY {sort} {'ASC' if order == 'ascending' else 'DESC'}''')
+
+    data = []
+    for row in row_data:
+        team_id = row[0]
+        team_name = row[1]
+        win = (0 if row[5] is None else row[5])
+        loss = (0 if row[6] is None else row[6])
+        matches = (0 if row[7] is None else row[7])
+        tournaments = row[8]
+        trophies = (0 if row[9] is None else row[9])
+
+        data_dict = {
+            'id':  team_id,
+            'name': team_name,
+            'win': win,
+            'loss': loss,
+            'matches': matches,
+            'tournaments': tournaments,
+            'trophies': trophies}
+        data.append(data_dict)
 
     return data
 
