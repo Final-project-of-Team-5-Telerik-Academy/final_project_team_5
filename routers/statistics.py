@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Form
 from fastapi.responses import JSONResponse
-from services import statistic_service, match_service
+from services import statistic_service, match_service, tournament_service
 
 
 statistics_router = APIRouter(prefix='/statistics', tags=['Statistics'])
@@ -39,6 +39,24 @@ def all_players_or_teams_statistics(type: str = Form('player', enum=['player', '
     return result
 
 
+
+@statistics_router.get('/{title}')
+def view_tournament_results(title: str):
+    tournament = tournament_service.get_tournament_by_title(title)
+    if not tournament:
+        return JSONResponse(status_code=404, content=f'{title} not found')
+
+    output = []
+    score_data = tournament_service.get_league_participants_points_for_tournament(tournament)
+    output.append(f'-= {tournament.title} RESULTS =-')
+    output.append(tournament)
+    winner = score_data[0]
+    winner_n = str(winner.values())
+    winner_name = str(winner_n[14:-3])
+    output.append(f'The winner is: {winner_name}!')
+    output.append(score_data)
+
+    return output
 
 
 

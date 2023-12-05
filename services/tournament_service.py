@@ -11,6 +11,7 @@ from itertools import combinations
 
 
 
+
 " 1. VIEW ALL TOURNAMENTS"
 def get_tournaments(sort: str | None, status: str):
     sql = '''SELECT id, title, number_participants, t_format, match_format, sport, date, prize, 
@@ -49,7 +50,6 @@ def get_tournament_by_title(title: str) -> Tournament | None:
 
 
 
-
 " 3. CREATE TOURNAMENT"
 def create_tournament(title: str, number_participants: int, t_format: str, match_format: str,
                       sport: str, date: date, prize: int, game_type: str, creator: User, stage = 0):
@@ -80,10 +80,12 @@ def add_player_to_tournament(player: Player, tournament: Tournament, stage=0):
 
 
 
+
 def add_team_to_tournament(team: Team, tournament: Tournament, stage=0):
     insert_query('''INSERT INTO tournaments_teams (teams_id, teams_name, tournaments_id, tournaments_title, stage) 
                 VALUES (?, ?, ?, ?, ?)''', (team.id, team.team_name, tournament.id, tournament.title, stage))
     return {'message': f'{team.team_name} joined the {tournament.title}'}
+
 
 
 
@@ -96,6 +98,7 @@ def is_player_in_tournament(player_id: int, tournament_id: int, table: str):
         if el == player_id:
             return True
     return False
+
 
 
 
@@ -124,8 +127,8 @@ def get_participants(tournament: Tournament, stage: int | None = None):
 
         for row in teams_data:
             participants.append({'id': row[0], 'name': row[1]})
-
     return participants
+
 
 
 
@@ -148,6 +151,8 @@ def enough_participants(tournament: Tournament):
     if difference == 0:
         return JSONResponse(status_code=400,
                             content=f'The tournament allows only {tournament.number_participants} participants. You have enough.')
+
+
 
 
 def need_or_complete(tournament: Tournament, table: str):
@@ -249,8 +254,6 @@ def arrange_league(tournament: Tournament, matches_per_days: int):
 " 6.1. SIMULATE  KNOCKOUT TOURNAMENT"
 def simulate_knockout_tournament_matches(tournament: Tournament):
     all_matches = match_service.get_knockout_matches_by_tournament(tournament.title, tournament.stage)
-
-
     output = []
     output.append('-= KNOCKOUT TOURNAMENT SIMULATIONS RESULTS =-')
     for current_match in all_matches:
@@ -330,11 +333,11 @@ def simulate_knockout_tournament_matches(tournament: Tournament):
 
 
 
+
 def level_participants_stage(table: str, title: str, winner: str, stage: int):
     update_query(f'''UPDATE tournaments_{table}s SET stage = ?
                     WHERE tournaments_title = ? AND {table}_name = ?''',
                  (stage, title, winner))
-
 
 
 
@@ -367,16 +370,22 @@ def get_league_participants_points_for_tournament(tournament: Tournament):
     return sorted_list
 
 
+
+
 "ADD TOURNAMENT TROPHY"
-def add_tournament_trophy(participant: str, p_type: str, t_title: str):
+def add_tournament_trophy(participant: str, p_type: str, tournament: Tournament):
     match_id_list = read_query(f'''SELECT matches_id FROM {p_type}s_statistics 
                     WHERE {p_type}_name = ? AND tournament_name = ?''',
-                    (participant, t_title))
+                               (participant, tournament.title))
     max_id = 0
     for el in match_id_list:
         num = el[0]
-        if max_id < num:
-            max_id = num
+        if tournament.game_type == 'time limit':
+            if max_id < num:
+                max_id = num
+        else:    # score limit
+            if max_id > num:
+                max_id = num
 
     tournaments_trophy_data = read_query(f'''SELECT tournament_trophy FROM {p_type}s_statistics 
                                             WHERE {p_type}_name = ?''',(participant,))
@@ -388,17 +397,21 @@ def add_tournament_trophy(participant: str, p_type: str, t_title: str):
 
 
 
+
 "SET TOURNAMENTS WINNER @ TOURNAMENTS TABLE"
 def set_winner(title: str, winner: str):
     update_query('UPDATE tournaments SET winner = ? WHERE title = ?',
                  (winner, title))
 
 
+
+
 def has_winner(title: str):
     row_data = read_query('SELECT winner FROM tournaments WHERE title = ?',
                           (title,))
-
     return row_data[0][0]
+
+
 
 
 def participant_type(tournament: Tournament):
@@ -407,3 +420,4 @@ def participant_type(tournament: Tournament):
     else:
         t_table = 'team'
     return t_table
+

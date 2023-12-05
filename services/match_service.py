@@ -51,6 +51,7 @@ def get_matches_by_tournament(title: str):
 
 
 
+
 def get_knockout_matches_by_tournament(title: str, stage: int):
     row_data = read_query('''SELECT id, match_format, game_type, sport, participant_1, participant_2, 
             creator, date, winner, tournament_name, stage FROM matches 
@@ -67,6 +68,7 @@ def get_knockout_matches_by_tournament(title: str, stage: int):
 
 
 
+
 " 2. GET MATCH BY ID"
 def get_match_by_id(id: int):
     row_data = read_query('''SELECT id, match_format, game_type, sport, participant_1, 
@@ -79,6 +81,7 @@ def get_match_by_id(id: int):
     data = row_data[0]
     result = Match.from_query_result(*data)
     return result
+
 
 
 
@@ -108,28 +111,27 @@ def create_match(match_format: str, game_type: str, sport: str, participant_1: s
 
 
 
+
 " 3.1. CHECK or CREATE PLAYER"
-def check_create_player(player_name: str):
-    existing_player = player_service.get_player_by_full_name(player_name)
-
-    if existing_player is None:
-        country, sports_club = 'add country', 'add sport club'
-        is_active, is_connected = 0, 0
-        teams_id, blocked_players_id = None, None
-
-        generated_id = insert_query('''INSERT INTO players(full_name, country, 
-            sports_club, is_active, is_connected, teams_id, blocked_players_id) 
-            VALUES (?,?,?,?,?,?,?)''', (player_name, country, sports_club,
-                                        is_active, is_connected, teams_id, blocked_players_id))
-
-        new_player = Player.from_query_result(generated_id, player_name, country,
-                sports_club, is_active, is_connected, teams_id, blocked_players_id)
-        return new_player
-
-    elif existing_player.blocked_players_id == 1:
-        return JSONResponse(status_code=400, content=f'Player {player_name} is blocked.')
-
-
+# def check_create_player(player_name: str):
+#     existing_player = player_service.get_player_by_full_name(player_name)
+#
+#     if existing_player is None:
+#         country, sports_club = 'add country', 'add sport club'
+#         is_active, is_connected = 0, 0
+#         teams_id, blocked_players_id = None, None
+#
+#         generated_id = insert_query('''INSERT INTO players(full_name, country,
+#             sports_club, is_active, is_connected, teams_id, blocked_players_id)
+#             VALUES (?,?,?,?,?,?,?)''', (player_name, country, sports_club,
+#                                         is_active, is_connected, teams_id, blocked_players_id))
+#
+#         new_player = Player.from_query_result(generated_id, player_name, country,
+#                 sports_club, is_active, is_connected, teams_id, blocked_players_id)
+#         return new_player
+#
+#     elif existing_player.blocked_players_id == 1:
+#         return JSONResponse(status_code=400, content=f'Player {player_name} is blocked.')
 
 
 
@@ -248,6 +250,8 @@ def delete_match(id: int):
     update_query(f'DELETE FROM players_statistics WHERE matches_id = {id}')
     update_query(f'DELETE FROM matches WHERE id = {id}')
     return {'message': f'Match with id {id} has been deleted.'}
+
+
 
 
 " 6. MATCHES SIMULATIONS"

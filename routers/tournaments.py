@@ -176,6 +176,8 @@ def arrange_tournament_matches(title: str, token: str, matches_per_day: int | No
     tournament = tournament_service.get_tournament_by_title(title)
     if not tournament:
         return JSONResponse(status_code=404, content=f'{title} not found')
+    if tournament.is_complete == 0:
+        return JSONResponse(status_code=400, content=f'{title} is not completed. You must add participants.')
     if match_service.get_matches_by_tournament(title):
         return JSONResponse(status_code=400, content=f"{title} already has created matches.")
 # KNOCKOUT
@@ -198,6 +200,8 @@ def enter_league_winner(title: str, token: str):
         return JSONResponse(status_code=403, content='Only Admin can create a match')
 
     tournament = tournament_service.get_tournament_by_title(title)
+    if not tournament:
+        return JSONResponse(status_code=404, content=f'{title} not found')
     if tournament.t_format != 'league':
         return JSONResponse(status_code=400, content="This tournament format is not 'league'")
 
@@ -215,17 +219,17 @@ def enter_league_winner(title: str, token: str):
 
     output = []
     score_data = tournament_service.get_league_participants_points_for_tournament(tournament)
-    output.append(f'-= {tournament.title} RESULTS =-')
-    output.append(tournament)
     winner = score_data[0]
     winner_n = str(winner.values())
     winner_name = str(winner_n[14:-3])
+    tournament_service.set_winner(title, winner_name)
+
+    output.append(f'-= {tournament.title} RESULTS =-')
+    output.append(tournament)
     output.append(f'The winner is: {winner_name}!')
     output.append(score_data)
-    tournament_service.add_tournament_trophy(winner_name, p_type, tournament.title)
+    tournament_service.add_tournament_trophy(winner_name, p_type, tournament)
 
-
-    tournament_service.set_winner(title, winner_name)
     return output
 
 
