@@ -109,7 +109,7 @@ class AdminsTests(unittest.TestCase):
         (3,)
         )
         
-        expected_response = JSONResponse(status_code=404, content='There is no user with ID: 3.')
+        expected_response = JSONResponse(status_code=404, content='User with ID: 3 does not exist.')
         self.assertEqual(result.status_code, expected_response.status_code)
         self.assertEqual(result.body, expected_response.body)
 

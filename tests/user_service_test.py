@@ -136,18 +136,6 @@ class UserServicesTests(unittest.TestCase):
         mock_read_query.assert_called_once_with('SELECT full_name FROM users WHERE id = ?', (1,))
         self.assertEqual(result, 'John Doe')
 
-    # @patch('services.user_service.read_query')
-    # def test_get_user_full_name_by_id_empty_result(self, mock_read_query):
-    #     # Arrange
-    #     mock_read_query.return_value = []
-
-    #     # Act
-    #     result = user_service.get_user_full_name_by_id(1)
-
-    #     # Assert
-    #     mock_read_query.assert_called_once_with('SELECT full_name FROM users WHERE id = ?', (1,))
-    #     self.assertIsNone(result)
-
     @patch('services.user_service.validate_email')
     @patch('services.user_service.verify_account')
     def test_verificated_user(self, mock_verify_account, mock_validate_email):

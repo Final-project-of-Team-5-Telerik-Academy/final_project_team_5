@@ -76,7 +76,7 @@ def create_token(user: User) -> str:
         - encoded JWT token
     '''
 
-    expiration_time = datetime.utcnow() + timedelta(minutes=180)
+    expiration_time = datetime.utcnow() + timedelta(minutes=30)
 
     payload = {
         "id": user.id,

@@ -62,7 +62,7 @@ def find_user_by_id(id: int) -> User | None:
         (id,))
     
     if data is None:
-        return JSONResponse(status_code=404, content=f'There is no user with ID: {id}.')
+        return JSONResponse(status_code=404, content=f'User with ID: {id} does not exist.')
 
     return next(User.from_query_result_no_password(*row) for row in data)
 
@@ -286,14 +286,6 @@ def edit_user_by_id(id: int, new_role: str, command: str, players_id: int , x_to
     # both are None:
     if new_role == None and players_id == None:
         return JSONResponse(status_code=400, content="You must enter either a new_role with a command or just a players_id.")
-
-    # both are != None:
-    # elif new_role != None and players_id != None:
-    #     return JSONResponse(status_code=401, content="You are not allowed to change the role and to add players_id at the same time.")
-    
-    # new_role != None and command is not correct:
-    # elif new_role != None and command == 'connection':
-    #     return JSONResponse(status_code=401, content="To edit user's role you must choose between 'promotion' or 'demotion' command.")
     
     # players_id != None and command is not correct
     elif players_id != None and new_role == None and (command == 'demotion' or command == 'promotion' ):
@@ -307,9 +299,6 @@ def edit_user_by_id(id: int, new_role: str, command: str, players_id: int , x_to
         elif shared_service.players_id_exists(players_id, 'users'):
             return JSONResponse(status_code=400, content=f'Player with id: {players_id} is already connected to a user.')
         
-        # elif old_user.players_id == players_id:
-        #     return JSONResponse(status_code=400, content=f'You are already connected to player with id: {players_id}.')
-        
         edit_user_players_id(old_user, players_id)
         
         is_connected = 1
@@ -317,13 +306,12 @@ def edit_user_by_id(id: int, new_role: str, command: str, players_id: int , x_to
         
         new_role = 'player'
         edit_user_role(old_user, new_role)
-
-        email_service.send_email(old_user.email, 'link_profile_approved')
         
         if shared_service.user_connection_request_exists(old_user.id):
             request_status = 'finished'
             type_of_request = 'connection'
             edit_requests_connection_status(request_status, players_id, type_of_request, id)
+            email_service.send_email(old_user.email, 'link_profile_approved')
             return f"User's account is linked with players_id: {players_id}, user's role is updated to: '{new_role}' and the status of the request is updated to 'finished'."
 
         return f"User's account is linked with players_id: {players_id} and user's role is updated to: '{new_role}'."
@@ -400,9 +388,6 @@ def block_player_by_id(players_id: int, ban_status: str, x_token: str):
         - Blocked player
     '''
     
-    # if x_token == None:
-    #     return JSONResponse(status_code=401, content='You must be logged in and be an admin to be able to block a player.')
-    
     user = get_user_or_raise_401(x_token)
     
     if not User.is_admin(user):
@@ -430,9 +415,6 @@ def find_all_blocked_players(x_token: str):
     Returns:
         - list of blocked players
     '''
-
-    # if x_token == None:
-    #     return JSONResponse(status_code=401, content='You must be logged in and be an admin to see the list of blocked players.')
     
     user = get_user_or_raise_401(x_token)
     
@@ -449,10 +431,7 @@ def remove_block_of_player(players_id: int, x_token: str):
 
     Returns:
         - Player is unblocked.
-    '''
-
-    # if x_token == None:
-    #     return JSONResponse(status_code=401, content='You must be logged in and be an admin to be able to unblock a player.')    
+    '''   
     
     user = get_user_or_raise_401(x_token)
     

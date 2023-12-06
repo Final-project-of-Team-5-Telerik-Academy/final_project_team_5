@@ -66,3 +66,39 @@ def delete_team(id: int = Query(..., description='Enter ID of the team you want 
     '''
 
     return team_service.delete_team_by_id(id, x_token)
+
+
+@teams_router.post('/players/{id}', description="Add player to a team:")
+def add_player_to_team(players_id: int = Query(..., description='Enter ID of the player you want to add:'), teams_id: int = Query(..., description='Enter ID of the team:'), 
+                x_token: str = Header()
+                ):
+    ''' Used for adding a player to a team.
+
+    Args:
+        - players_id: int(URL link)
+        - teams_id: int(URL link)
+        - JWT token
+    
+    Returns:
+        - Added player
+    '''
+
+    return team_service.add_player_to_a_team(players_id, teams_id, x_token)
+
+
+@teams_router.delete('/players/{id}', description="Remove player from a team:")
+def remove_player_from_team(players_id: int = Query(..., description='Enter ID of the player you want to remove:'), teams_id: int = Query(..., description='Enter ID of the team:'), 
+                x_token: str = Header()
+                ):
+    ''' Used for deleting a player from a team.
+
+    Args:
+        - players_id: int(URL link)
+        - teams_id: int(URL link)
+        - JWT token
+    
+    Returns:
+        - Removed player
+    '''
+
+    return team_service.delete_player_from_team(players_id, teams_id, x_token)
