@@ -6,12 +6,12 @@ from services import statistic_service, match_service, tournament_service
 statistics_router = APIRouter(prefix='/statistics', tags=['Statistics'])
 
 
-@statistics_router.put('/')
+@statistics_router.post('/single')
 def single_player_or_team_statistics(name: str,
-                         type: str = Form('player', enum=['player', 'team']),
+                         p_type: str = Form('player', enum=['player', 'team']),
                          matches: str = Form('all', enum=['all', 'wins', 'losses'])):
 
-    if type == 'player':
+    if p_type == 'player':
         existing_player = match_service.get_player_by_full_name_v2(name)
         if existing_player is None:
             return JSONResponse(status_code=404, content=f'{name} is not found')
@@ -22,17 +22,17 @@ def single_player_or_team_statistics(name: str,
             return JSONResponse(status_code=404, content=f'The team {name} is not found')
         participant_name = existing_team.team_name
 
-    result = statistic_service.get_single_player_team_statistics(participant_name, matches, type)
+    result = statistic_service.get_single_player_team_statistics(participant_name, matches, p_type)
     return result
 
 
 
-@statistics_router.post('/')
-def all_players_or_teams_statistics(type: str = Form('player', enum=['player', 'team']),
+@statistics_router.post('/all')
+def all_players_or_teams_statistics(p_type: str = Form('player', enum=['player', 'team']),
                                     sort: str = Form(..., enum=['wins', 'matches', 'tournaments_played', 'tournaments_wins']),
                                     order: str = Form(..., enum=['descending', 'ascending'])):
 
-    if type == 'player':
+    if p_type == 'player':
         result = statistic_service.all_players_statistics(sort, order)
     else:   # TEAM
         result = statistic_service.all_teams_statistics(sort, order)
@@ -40,7 +40,7 @@ def all_players_or_teams_statistics(type: str = Form('player', enum=['player', '
 
 
 
-@statistics_router.get('/{title}')
+@statistics_router.post('/{title}')
 def view_tournament_results(title: str):
     tournament = tournament_service.get_tournament_by_title(title)
     if not tournament:

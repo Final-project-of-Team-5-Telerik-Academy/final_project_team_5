@@ -37,10 +37,10 @@ def view_matches_by_tournament(title: str):
 
 " 2. VIEW MATCH BY ID"
 @matches_router.get('/{id}', description='You can view all matches')
-def view_match_by_id(id: int):
-    result = match_service.get_match_by_id(id)
+def view_match_by_id(id_m: int):
+    result = match_service.get_match_by_id(id_m)
     if not result:
-        return JSONResponse(status_code=404, content=f'There is no match with id {id}.')
+        return JSONResponse(status_code=404, content=f'There is no match with id {id_m}.')
     return result
 
 
@@ -79,7 +79,7 @@ def create_match(token: str,
                 return {'message': f'{existing_player.full_name} is not active player.'}
 
             users_account = user_service.players_id_exists_in_users(existing_player.id, existing_player.full_name)
-            if users_account != None:
+            if users_account is not None:
                 email_service.send_email(users_account.email, 'added_to_match')
 
 # player 2
@@ -93,7 +93,7 @@ def create_match(token: str,
                 return {'message': f'{existing_player.full_name} is not active player.'}
 
             users_account = user_service.players_id_exists_in_users(existing_player.id, existing_player.full_name)
-            if users_account != None:
+            if users_account is not None:
                 email_service.send_email(users_account.email, 'added_to_match')
 
 
@@ -140,9 +140,6 @@ def enter_match_winner(token: str, match_id: int,
         return JSONResponse(status_code=400,
             content=f'The winner of match {match.id} is already set to {match.winner}.')
 
-    if match.tournament_name != 'not part of a tournament':
-        title = match.tournament_name
-
     winner = match_service.enter_match_winner(match, p1_score, p2_score)
     return winner
 
@@ -151,16 +148,16 @@ def enter_match_winner(token: str, match_id: int,
 
 " 5. DELETE A MATCH"
 @matches_router.delete('/{id}')
-def delete_match(id: int, token: str):
+def delete_match(id_m: int, token: str):
     user = get_user_or_raise_401(token)
     if not User.is_admin(user):
         return JSONResponse(status_code=403, content='Only Admin can delete a match')
 
-    match = match_service.get_match_by_id(id)
+    match = match_service.get_match_by_id(id_m)
     if not match:
-        return JSONResponse(status_code=404, content=f'There is no match with id {id}.')
+        return JSONResponse(status_code=404, content=f'There is no match with id {id_m}.')
 
-    result = match_service.delete_match(id)
+    result = match_service.delete_match(id_m)
     return result
 
 
@@ -172,7 +169,7 @@ def delete_matches_by_tournament(title: str, token: str):
     if not (User.is_director(user) or User.is_admin(user)):
         return JSONResponse(status_code=403, content='Only Admin and Director can delete a match')
 
-    output = []
+    output = list()
     output.append({'message': f'All matches from tournament {title} has been deleted'})
     matches = match_service.get_matches_by_tournament(title)
     if not matches:
