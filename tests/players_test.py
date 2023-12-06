@@ -207,5 +207,39 @@ class PlayersTests(unittest.TestCase):
         self.assertIsNone(result)
 
 
+    @patch('services.player_service.read_query')
+    def test_get_player_by_full_name_next(self, mock_read_query):
+
+        # Arrange
+        mock_read_query.return_value = [(3, 'Bob Ross', 'USA', 'DIVA', 0, 0, None, None)]
+
+        # Act
+        result = player_service.get_player_by_full_name_next('Bob Ross')
+
+        # Assert
+        mock_read_query.assert_called_once_with(
+        'SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, blocked_players_id FROM players WHERE full_name = ?',
+        ('Bob Ross',)
+        )
+        self.assertTrue(result)
+
+
+    @patch('services.player_service.read_query')
+    def test_do_not_get_player_by_full_name_next(self, mock_read_query):
+
+        # Arrange
+        mock_read_query.return_value = []
+
+        # Act
+        result = player_service.get_player_by_full_name_next('Bob Ross')
+
+        # Assert
+        mock_read_query.assert_called_once_with(
+        'SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, blocked_players_id FROM players WHERE full_name = ?',
+        ('Bob Ross',)
+        )
+        self.assertIsNone(result)
+
+
 if __name__ == '__main__':
     unittest.main()

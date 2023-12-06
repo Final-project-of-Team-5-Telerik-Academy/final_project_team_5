@@ -1,7 +1,6 @@
 from data.database import read_query, insert_query, update_query
 from my_models.model_user import Role, User
 from my_models.model_player import Player
-# from my_models.model_tournament import Tournament # Да се откоментира, когато се напише класа Tournament!
 from authentication.authenticator import find_by_email
 from my_models.model_admin_requests import AdminRequests
 from my_models.model_director_requests import DirectorRequests
@@ -110,7 +109,6 @@ def create(full_name: str, email: str, password: str, gender: str) -> User | Non
     role = Role.SPECTATOR
     players_id = None
     is_verified = 0
-    # fixed_digits = 6
     verification_code = random.randrange(0, 999999, 6)
 
     generated_id = insert_query(
@@ -212,13 +210,6 @@ def find_admin_request_by_id_and_users_id(id: int, users_id: int) -> AdminReques
         (id, users_id))
 
     return next((AdminRequests.from_query_result(*row) for row in data), None)
-
-
-# !!! Да се откоментира, когато се напише класа Tournament! Проверява дали турнамента е създаден от същия директор. Може да се използва за edit или delete на турнамент. !!!
-# def owns_tournament(user: User, tournament: Tournament) -> bool:
-#     ''' Used to compare the tournament.user_id with the user's token id.'''
-    
-#     return tournament.user_id == user.id
 
 
 def send_connection_request(type_of_request:str, players_id:int, users_id:int) -> AdminRequests | None:
@@ -326,6 +317,7 @@ def verify_account(email: str, verification_code: int):
         is_verified = 1
         update_query('''UPDATE users SET is_verified = ? WHERE id = ?''',
                     (is_verified, user.id))
+        email_service.send_email(email, 'verified')
         return {'You successfully verified your account.'}
     else:
         return JSONResponse(status_code=400, content='Your verification data is not valid.')
@@ -370,9 +362,6 @@ def create_director_request(country: str, sports_club: str, x_token: str):
     Returns:
         - Created director request
     '''
-
-    # if x_token == None:
-    #     return JSONResponse(status_code=401, content='You must be logged in to send a request for creating a player.')    
     
     user = get_user_or_raise_401(x_token)
 
@@ -397,9 +386,6 @@ def get_all_director_requests(x_token: str):
     Returns:
         - list of all user's requests
     '''
-
-    # if x_token == None:
-    #     return JSONResponse(status_code=400, content='You must be logged in to see your requests!')
     
     user = get_user_or_raise_401(x_token)
     user_id = user.id
@@ -436,9 +422,6 @@ def get_director_request_by_id(id: int, x_token: str):
     Returns:
         - Director request
     '''
-
-    # if x_token == None:
-    #     return JSONResponse(status_code=400, content='You must be logged in to see your director requests!')
     
     user = get_user_or_raise_401(x_token)
 
@@ -472,9 +455,7 @@ def delete_director_request_by_id(id: int, x_token: str):
     Returns:
         - Deleted director request
     '''
-
-    # if x_token == None:
-    #     return JSONResponse(status_code=401, content='You must be logged in delete your director request.')    
+    
     if not shared_service.id_exists(id, 'director_requests'):
         return JSONResponse(status_code=404, content=f'Director request with ID: {id} does not exist.')
     
@@ -536,9 +517,6 @@ def create_and_send_admin_request(type_of_request: str, players_id: int, x_token
     Returns:
         - Created admin request
     '''
-
-    # if x_token == None:
-    #     return JSONResponse(status_code=401, content='You must be logged in to send a connection/promotion request.')    
     
     user = get_user_or_raise_401(x_token)
     users_id = user.id
@@ -586,9 +564,6 @@ def get_all_admin_requests(x_token: str):
     Returns:
         - list of all user's requests
     '''
-
-    # if x_token == None:
-    #     return JSONResponse(status_code=400, content='You must be logged in to see your requests!')
     
     user = get_user_or_raise_401(x_token)
     user_id = user.id
@@ -610,9 +585,6 @@ def get_admin_request_by_id(id: int, x_token: str):
     Returns:
         - user's request
     '''
-
-    # if x_token == None:
-    #     return JSONResponse(status_code=400, content='You must be logged in to see your requests!')
     
     user = get_user_or_raise_401(x_token)
 
@@ -646,9 +618,6 @@ def delete_admin_request_by_id(id: int, x_token: str):
     Returns:
         - Deleted request
     '''
-
-    # if x_token == None:
-    #     return JSONResponse(status_code=401, content='You must be logged in delete your request.')    
     
     user = get_user_or_raise_401(x_token)
 

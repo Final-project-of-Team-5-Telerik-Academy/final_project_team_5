@@ -36,6 +36,16 @@ def get_player_by_full_name(full_name: str) -> Player | None:
     return (Player.from_query_result(*row) for row in data)
 
 
+def get_player_by_full_name_next(full_name: str) -> Player | None:
+
+    data = read_query(
+        'SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, blocked_players_id FROM players WHERE full_name = ?',
+        (full_name,)
+        )
+
+    return next((Player.from_query_result(*row) for row in data), None)
+
+
 def get_all_players() -> Player | None:
     ''' Search in the database and creates a list of all players. 
     
@@ -164,9 +174,6 @@ def create_player_account(full_name: str, country: str, sports_club: str, x_toke
         - Created player information
     '''
     
-    # if x_token == None:
-    #     return JSONResponse(status_code=401, content='You must be logged in and be an admin to be able to create a player.')
-    
     user = get_user_or_raise_401(x_token)
 
     if User.is_director(user):
@@ -184,6 +191,56 @@ def create_player_account(full_name: str, country: str, sports_club: str, x_toke
     return created_player
 
 
+def edit_player_account(full_name: str, country: str, sports_club: str, x_token: str):
+    ''' Used for editing a new player by a director or admin.
+
+    Args:
+        - full_name: str(Query)
+        - country: str(Query)
+        - sports_club: str(Query)
+        - x_token: JWT token(Header)
+
+    Returns:
+        - Edited player information
+    '''
+    
+    user = get_user_or_raise_401(x_token)
+    player = get_player_by_full_name_next(full_name)
+    
+    if player == None:
+        return JSONResponse(status_code=404, content=f'Player with full name: {full_name} does not exist.')
+    elif User.is_player(user):
+        if user.players_id == player.id:
+            edit_whole_player(full_name, country, sports_club)
+        else:
+            return JSONResponse(status_code=401, content='Unrecognized credentials.')
+    elif User.is_director(user):
+        if not Player.is_connected_account(player):
+            edit_whole_player(full_name, country, sports_club)
+        else:
+            return JSONResponse(status_code=401, content='Unrecognized credentials.')
+    elif User.is_admin(user):
+        edit_whole_player(full_name, country, sports_club)
+    else:
+        return JSONResponse(status_code=401, content='Unrecognized credentials.')
+
+    return {'Player is edited.'}
+
+
+def edit_whole_player(full_name: str, country: str, sports_club: str) -> Player:
+    ''' Used for editing a player.
+
+    Returns:
+        - Edited player information
+    '''
+
+    update_query('''UPDATE players SET country = ? WHERE full_name = ?''',
+                (country, full_name))
+
+    update_query('''UPDATE players SET sports_club = ? WHERE full_name = ?''',
+                (sports_club, full_name))
+
+
 def find_all_player_accounts():
     ''' Used to get all player accounts.
     
@@ -193,22 +250,6 @@ def find_all_player_accounts():
     Returns:
         - list of all player accounts
     '''
-
-    # if x_token is None:
-    #     return JSONResponse(status_code=401, content='You must be logged in to view the list of players.')
-    
-    # user = get_user_or_raise_401(x_token)
-
-    # if User.is_spectator(user):
-    #     list_of_players = get_all_players()
-    # elif User.is_player(user):
-    #     list_of_players = get_all_players()
-    # elif User.is_director(user):
-    #     list_of_players = get_all_players()
-    # elif User.is_admin(user):
-    #     list_of_players = get_all_players()
-    # else: 
-    #     return JSONResponse(status_code=401, content='Unrecognized credentials.')
 
     list_of_players = get_all_players()
 
@@ -225,24 +266,8 @@ def find_player_account_by_id(id: int):
         - player account
     '''
 
-    # if x_token is None:
-    #     return JSONResponse(status_code=401, content='You must be logged in to see the players information.')
-    
-    # user = get_user_or_raise_401(x_token)
-
     if not shared_service.id_exists(id, 'players'):
             return JSONResponse(status_code=404, content=f'Player with id: {id} does not exist.')
-    
-    # if User.is_spectator(user):
-    #     player = get_player_by_id(id)
-    # elif User.is_player(user):
-    #     player = get_player_by_id(id)
-    # elif User.is_director(user):
-    #     player = get_player_by_id(id) 
-    # elif User.is_admin(user):
-    #     player = get_player_by_id(id)
-    # else: 
-    #     return JSONResponse(status_code=401, content='Unrecognized credentials.')
     
     player = get_player_by_id(id)
 
@@ -258,16 +283,13 @@ def delete_player_account_by_id(id: int, x_token: str):
     Returns:
         - deleted player
     '''
-
-    # if x_token == None:
-    #     return JSONResponse(status_code=401, content='You must be logged in and be an admin to be able to delete an user.')    
     
     user = get_user_or_raise_401(x_token)
     
     if not User.is_admin(user):
-        return JSONResponse(status_code=401, content='You must be an admin to be able to delete an user.')
-    elif not shared_service.id_exists(id, 'users'):
-        return JSONResponse(status_code=404, content=f'User with id: {id} does not exist.')
+        return JSONResponse(status_code=401, content='You must be an admin to be able to delete a player.')
+    elif not shared_service.id_exists(id, 'players'):
+        return JSONResponse(status_code=404, content=f'Player with id: {id} does not exist.')
     
     delete_player(id)
         

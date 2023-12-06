@@ -4,6 +4,7 @@ from data.database import read_query, insert_query, update_query, read_query_add
 from fastapi.responses import JSONResponse
 from authentication.authenticator import get_user_or_raise_401
 from my_models.model_user import User
+from services import shared_service
 
 
 def team_name_exists(team_name: str) -> bool:
@@ -67,26 +68,6 @@ def get_all_teams() -> Team | None:
     return result
 
 
-# def get_team_by_id(id: int) -> Team | None:
-#     ''' Used for getting a single team by team.id.
-    
-#     Args:
-#         - team.id: int(URL link)
-    
-#     Returns:
-#         - team
-#     '''
-
-#     team = read_query_additional('SELECT id, team_name, number_of_players, owners_id FROM teams where id = ?',(id,))
-
-#     if team is None:
-#         return JSONResponse(status_code=404, content=f'Team with id: {id} does not exist.')
-
-#     actual = Team.from_query_result(*team)
-
-#     return actual
-
-
 def get_team_and_players_by_id(id: int) -> Team | None:
     ''' Used for getting a single team by team.id.
     
@@ -132,6 +113,33 @@ def teams_list_exists() -> bool:
             ))
 
 
+def remove_player_from_the_team(players_id: int, teams_id: int):
+    ''' Used for deleting player from the team from the database.'''
+    team = None
+
+    update_query('''UPDATE players SET teams_id = ? WHERE id = ? and teams_id = ?''',
+                (team, players_id, teams_id))
+
+
+def add_player_to_team(players_id: int, teams_id: int):
+    ''' Used for deleting player from the team from the database.'''
+
+    update_query('''UPDATE players SET teams_id = ? WHERE id = ?''',
+                (teams_id, players_id))
+    
+
+def player_with_team_id_exists(players_id: int, teams_id: int) -> bool:
+    ''' Used to check if the teams_id exists in the specific player in the database.
+
+    Returns:
+        - True/False
+    '''
+
+    return any(
+        read_query('SELECT id FROM players WHERE id = ? and teams_id = ?',
+            (players_id, teams_id)))
+
+
 def create_a_team(team_name: str, number_of_players: int, x_token: str):
     ''' Used for creating a new team by a director or admin.
 
@@ -142,10 +150,7 @@ def create_a_team(team_name: str, number_of_players: int, x_token: str):
 
     Returns:
         - Created team information
-    '''
-
-    # if x_token == None:
-    #     return JSONResponse(status_code=401, content='You must be logged in and be an admin or a director to be able to create a player.')    
+    ''' 
     
     user = get_user_or_raise_401(x_token)
 
@@ -228,15 +233,14 @@ def delete_team_by_id(id: int, x_token: str):
     Returns:
         - Deleted team
     '''
-
-    # if x_token == None:
-    #     return JSONResponse(status_code=401, content='You must be logged in and be an admin or a director and owner to be able to delete a team.')    
     
     user = get_user_or_raise_401(x_token)
 
     team = get_team_and_players_by_id(id)
-    
-    if User.is_admin(user):
+
+    if not shared_service.id_exists(id, 'teams'):
+        return JSONResponse(status_code=404, content=f'Team with id: {id} does not exist.')
+    elif User.is_admin(user):
         delete_team(id)
     elif User.is_director(user):
         if user.id == team.owners_id:
@@ -267,3 +271,65 @@ def get_team_by_name(name: str) -> Team | None:
     actual = Team.from_query_result_additional(*team)
 
     return actual
+
+
+def delete_player_from_team(players_id: int, teams_id, x_token: str):
+    ''' Used for deleting a player from a team. Only admins and owners can delete it.
+
+    Args:
+        - players_id: int(URL link)
+        - teams_id: int(URL link)
+        - JWT token
+    
+    Returns:
+        - Deleted player from team
+    '''
+    
+    user = get_user_or_raise_401(x_token)
+
+    team = get_team_and_players_by_id(teams_id)
+
+    if not player_with_team_id_exists(players_id, teams_id):
+        return JSONResponse(status_code=404, content=f'Player with id: {players_id} is currently not in the team.')
+    elif User.is_admin(user):
+        remove_player_from_the_team(players_id, teams_id)
+    elif User.is_director(user):
+        if user.id == team.owners_id:
+            remove_player_from_the_team(players_id, teams_id)
+    else:    
+        return JSONResponse(status_code=401, content='You must be logged in and be an admin or a director and owner to be able to remove a player.')
+        
+    return {'Player is removed from the team.'}
+
+
+def add_player_to_a_team(players_id: int, teams_id, x_token: str):
+    ''' Used for adding a player to a team.
+
+    Args:
+        - players_id: int(URL link)
+        - teams_id: int(URL link)
+        - JWT token
+    
+    Returns:
+        - Added player
+    '''
+    
+    user = get_user_or_raise_401(x_token)
+
+    team = get_team_and_players_by_id(teams_id)
+
+    if not shared_service.id_exists(players_id, 'players'):
+        return JSONResponse(status_code=400, content=f'Player with id: {players_id} does not exist.')
+    elif not shared_service.id_exists(teams_id, 'teams'):
+        return JSONResponse(status_code=404, content=f'Team with id: {teams_id} does not exist.')
+    elif player_with_team_id_exists(players_id, teams_id):
+        return JSONResponse(status_code=404, content=f'Player with id: {players_id} is currently in a team.')
+    elif User.is_admin(user):
+        add_player_to_team(players_id, teams_id)
+    elif User.is_director(user):
+        if user.id == team.owners_id:
+            add_player_to_team(players_id, teams_id)
+    else:    
+        return JSONResponse(status_code=401, content='You must be logged in and be an admin or a director and owner to be able to add a player.')
+        
+    return {'Player is added to the team.'}

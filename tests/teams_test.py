@@ -235,6 +235,68 @@ class TeamsTests(unittest.TestCase):
         self.assertEqual(result.status_code, expected_response.status_code)
         self.assertEqual(result.body, expected_response.body)
 
+    
+    @patch('services.team_service.update_query')
+    def test_remove_player_from_the_team(self, mock_update_query):
+
+        # Arrange
+        mock_update_query.return_value = None
+
+        # Act
+        result = team_service.remove_player_from_the_team(3, 2)
+
+        # Assert
+        mock_update_query.assert_called_once_with('''UPDATE players SET teams_id = ? WHERE id = ? and teams_id = ?''',
+                (None, 3, 2))
+
+        self.assertIsNone(result)
+
+
+    @patch('services.team_service.read_query')
+    def test_player_with_team_id_exists_bool(self, mock_read_query):
+
+        # Arrange
+        mock_read_query.return_value = [(1,)]
+
+        # Act
+        result = team_service.player_with_team_id_exists(1, 2)
+
+        # Assert
+        mock_read_query.assert_called_once_with('SELECT id FROM players WHERE id = ? and teams_id = ?',
+            (1, 2))     
+        self.assertTrue(result)
+
+    
+    @patch('services.team_service.read_query')
+    def test_player_with_team_id_does_not_exists_bool(self, mock_read_query):
+
+        # Arrange
+        mock_read_query.return_value = []
+
+        # Act
+        result = team_service.player_with_team_id_exists(1, 2)
+
+        # Assert
+        mock_read_query.assert_called_once_with('SELECT id FROM players WHERE id = ? and teams_id = ?',
+            (1, 2)) 
+        self.assertFalse(result)
+
+
+    @patch('services.team_service.update_query')
+    def test_add_player_to_team(self, mock_update_query):
+
+        # Arrange
+        mock_update_query.return_value = None
+
+        # Act
+        result = team_service.add_player_to_team(3, 2)
+
+        # Assert
+        mock_update_query.assert_called_once_with('''UPDATE players SET teams_id = ? WHERE id = ?''',
+                (2, 3))
+
+        self.assertIsNone(result)
+
 
 if __name__ == '__main__':
     unittest.main()
