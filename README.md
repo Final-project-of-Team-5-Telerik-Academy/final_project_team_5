@@ -257,7 +257,7 @@ Here you will understand how to properly work with the program.
 
 <img align="left" src="https://cdn.discordapp.com/attachments/1171040731104808962/1181911482552827945/Shema_match_score_db.jpg?ex=6582c7d8&is=657052d8&hm=d2ad72bc712cc79194f711874cdfb0b9f9d68a29787ed975904416e131d0ced5&" alt="diagram" width="1020px"/>
 
-# <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>ADDITIONAL INFORMATION:
+# <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>ADDITIONAL INFORMATION:
 
 
 ## TOKEN ADDITIONAL INFORMATION 

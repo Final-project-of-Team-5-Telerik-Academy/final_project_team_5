@@ -24,10 +24,10 @@ def user_info(id: int = Query(default=None, description="Enter ID of user:"),
 
 
 @admins_router.put('/users', description="Edit user's account:")
-def edit_users(id: int = Query(..., description='Enter ID of user:'),
-                    new_role: str = Form(..., description='Choose your role:',example='spectator', enum = ['spectator', 'player', 'director']),
-                    command: str = Form(..., description='Choose a between:',example='promotion', enum = ['promotion', 'demotion', 'connection']),
-                    players_id: int = Query(default=None, description='Enter ID of player:'),
+def edit_users(id: int = Query(5, description='Enter ID of user:'),
+                    new_role: str = Form('player', description='Choose your role:',example='spectator', enum = ['spectator', 'player', 'director']),
+                    command: str = Form('connection', description='Choose a between:',example='promotion', enum = ['promotion', 'demotion', 'connection']),
+                    players_id: int = Query(6, description='Enter ID of player:'),
                     x_token: str = Header()
                     ):
     ''' Used for editing a user's role through user.id or adding players_id into user. Only admins can use it.
