@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Query, Header, Form
 from fastapi.responses import JSONResponse
-from services import tournament_service, match_service, shared_service, player_service, team_service, user_service, email_service
+from services import tournament_service, match_service, shared_service, player_service, user_service, email_service
 from authentication.authenticator import get_user_or_raise_401
-from pydantic import constr
 from my_models.model_user import User
 from my_models.model_match import sports_list
 from datetime import datetime
@@ -40,7 +39,7 @@ def view_tournament_participants(title: str):
     if not tournament:
         return JSONResponse(status_code=404, content=f'{title} not found')
 
-    output = []
+    output = list()
     output.append(tournament_service.get_tournament_by_title(title))
     output.append('-= PARTICIPANTS =-')
 
@@ -92,12 +91,12 @@ def add_participant_to_tournament(title: str, participant: str, token: str):
 
     tournament = tournament_service.get_tournament_by_title(title)
     if not tournament:
-        return JSONResponse(status_code=404, content=f'{title} not found')
+        return JSONResponse(status_code=404, content=f"The tournament '{title}' not found")
     if tournament.winner != 'Not finished yet':
         return f'the tournament {tournament.title} is finished.'
 
-    table = None
-    output = []
+
+    output = list()
 
 # ONE ON ONE GAME
     if tournament.game_type == 'one on one':
@@ -124,7 +123,7 @@ def add_participant_to_tournament(title: str, participant: str, token: str):
         
         for p in participants:
             users_account = user_service.players_id_exists_in_users(p['id'], p['name'])
-            if users_account != None:
+            if users_account is not None:
                 email_service.send_email(users_account.email, 'added_to_tournament')
         
         difference = tournament.number_participants - len(participants)
@@ -143,7 +142,7 @@ def add_participant_to_tournament(title: str, participant: str, token: str):
 
         output.append(tournament_service.add_team_to_tournament(team, tournament))
 
-    output.append(tournament_service.need_or_complete(tournament, table))
+    output.append(tournament_service.need_or_complete(tournament))
     return output
 
 
@@ -176,12 +175,15 @@ def arrange_tournament_matches(title: str, token: str, matches_per_day: int | No
     tournament = tournament_service.get_tournament_by_title(title)
     if not tournament:
         return JSONResponse(status_code=404, content=f'{title} not found')
-    if match_service.get_matches_by_tournament(title):
-        return JSONResponse(status_code=400, content=f"{title} already has created matches.")
+    if tournament.is_complete == 0:
+        return JSONResponse(status_code=400, content=f'{title} is not completed. You must add participants.')
+
+
 # KNOCKOUT
     if tournament.t_format == 'knockout':
         stage = tournament_service.create_knockout_stage(tournament)
         return stage
+
 # LEAGUE
     elif tournament.t_format == 'league':
         league = tournament_service.arrange_league(tournament, matches_per_day)
@@ -191,13 +193,15 @@ def arrange_tournament_matches(title: str, token: str, matches_per_day: int | No
 
 
 " 8. ENTER LEAGUE WINNER"
-@tournaments_router.get('/{title}/results')
-def enter_league_winner(title: str, token: str):
+@tournaments_router.post('/{title}/league/results')
+def set_league_tournament_winner(title: str, token: str):
     creator = get_user_or_raise_401(token)
     if not User.is_admin(creator):
         return JSONResponse(status_code=403, content='Only Admin can create a match')
 
     tournament = tournament_service.get_tournament_by_title(title)
+    if not tournament:
+        return JSONResponse(status_code=404, content=f'{title} not found')
     if tournament.t_format != 'league':
         return JSONResponse(status_code=400, content="This tournament format is not 'league'")
 
@@ -215,17 +219,17 @@ def enter_league_winner(title: str, token: str):
 
     output = []
     score_data = tournament_service.get_league_participants_points_for_tournament(tournament)
-    output.append(f'-= {tournament.title} RESULTS =-')
-    output.append(tournament)
     winner = score_data[0]
     winner_n = str(winner.values())
     winner_name = str(winner_n[14:-3])
+    tournament_service.set_winner(title, winner_name)
+
+    output.append(f'-= {tournament.title} RESULTS =-')
+    output.append(tournament)
     output.append(f'The winner is: {winner_name}!')
     output.append(score_data)
-    tournament_service.add_tournament_trophy(winner_name, p_type, tournament.title)
+    tournament_service.add_tournament_trophy(winner_name, p_type, tournament)
 
-
-    tournament_service.set_winner(title, winner_name)
     return output
 
 

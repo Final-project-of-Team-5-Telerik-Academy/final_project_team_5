@@ -44,7 +44,7 @@ def get_single_player_team_statistics(name:str, wanted_matches: str, p_type: str
     worst_opponent = worst_opponent_data[0][0]
     games_against_worst_opponent = worst_opponent_data[0][1]
 
-    results_list = []
+    results_list = list()
     results_list.append('-= SUMMARY =-')
     header = {'name': f'{name}',
               'total wins': wins,
@@ -93,7 +93,7 @@ def all_matches_convertor(all_matches):
         player_name = row[0]
         opponent_name = row[1]
         win = row[2]
-        loss = row[3]
+        # loss = row[3]
         matches_id = row[4]
         tournament_name = row[5]
         date = row[6]
@@ -118,7 +118,7 @@ def wins_matches_convertor(all_matches):
             player_name = row[0]
             opponent_name = row[1]
             win = row[2]
-            loss = row[3]
+            # loss = row[3]
             matches_id = row[4]
             tournament_name = row[5]
             date = row[6]
@@ -142,7 +142,7 @@ def losses_matches_convertor(all_matches):
             player_name = row[0]
             opponent_name = row[1]
             win = row[2]
-            loss = row[3]
+            # loss = row[3]
             matches_id = row[4]
             tournament_name = row[5]
             data_dict = {
@@ -202,36 +202,40 @@ def all_players_statistics(sort: str, order: str):
 
 def all_teams_statistics(sort: str, order: str):
     row_data = read_query(
-        f'''SELECT t.id, t.team_name
-        SUM(ts.win) AS wins
-        SUM(ts.loss) AS losses
+        f'''SELECT t.id, t.team_name,
+        SUM(ts.win) AS wins,
+        SUM(ts.loss) AS losses,
         COUNT(DISTINCT ts.matches_id) AS matches,
         COUNT(DISTINCT ts.tournament_name) AS tournaments_played,
         SUM(ts.tournament_trophy) AS tournaments_wins
         FROM teams t
-        LEFT JOIN teams_statistics ps ON t.id = ts.teams_id
+        LEFT JOIN teams_statistics ts ON t.id = ts.teams_id
         GROUP BY t.id, t.team_name
         ORDER BY {sort} {'ASC' if order == 'ascending' else 'DESC'}''')
 
-    data = []
-    for row in row_data:
-        team_id = row[0]
-        team_name = row[1]
-        win = (0 if row[5] is None else row[5])
-        loss = (0 if row[6] is None else row[6])
-        matches = (0 if row[7] is None else row[7])
-        tournaments = row[8]
-        trophies = (0 if row[9] is None else row[9])
 
-        data_dict = {
-            'id':  team_id,
-            'name': team_name,
-            'win': win,
-            'loss': loss,
-            'matches': matches,
-            'tournaments': tournaments,
-            'trophies': trophies}
-        data.append(data_dict)
+    if not row_data:
+        return JSONResponse('No teams statistics for now')
+    else:
+        data = []
+        for row in row_data:
+            team_id = row[0]
+            team_name = row[1]
+            win = (0 if row[2] is None else row[2])
+            loss = (0 if row[3] is None else row[3])
+            matches = (0 if row[4] is None else row[4])
+            tournaments = row[5]
+            trophies = (0 if row[6] is None else row[6])
+
+            data_dict = {
+                'id':  team_id,
+                'name': team_name,
+                'win': win,
+                'loss': loss,
+                'matches': matches,
+                'tournaments': tournaments,
+                'trophies': trophies}
+            data.append(data_dict)
 
     return data
 
