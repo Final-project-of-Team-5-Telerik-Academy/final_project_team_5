@@ -5,7 +5,6 @@ from my_models.model_team import Team
 from fastapi.responses import JSONResponse
 import random
 from datetime import date
-from services import player_service, team_service, tournament_service
 
 
 
@@ -52,23 +51,6 @@ def get_matches_by_tournament(title: str):
 
 
 
-def get_knockout_matches_by_tournament(title: str, stage: int):
-    row_data = read_query('''SELECT id, match_format, game_type, sport, participant_1, participant_2, 
-            creator, date, winner, tournament_name, stage FROM matches 
-            WHERE tournament_name = ? AND stage = ?''', (title, stage, ))
-
-    if row_data is None:
-        return JSONResponse(status_code=404, content=f'There are no matches for tournament "{title}"')
-    else:
-        result = []
-        for el in row_data:
-            match_dict = Match.from_query_result(*el)
-            result.append(match_dict)
-        return result
-
-
-
-
 " 2. GET MATCH BY ID"
 def get_match_by_id(id: int):
     row_data = read_query('''SELECT id, match_format, game_type, sport, participant_1, 
@@ -111,33 +93,8 @@ def create_match(match_format: str, game_type: str, sport: str, participant_1: s
 
 
 
-
-" 3.1. CHECK or CREATE PLAYER"
-# def check_create_player(player_name: str):
-#     existing_player = player_service.get_player_by_full_name(player_name)
-#
-#     if existing_player is None:
-#         country, sports_club = 'add country', 'add sport club'
-#         is_active, is_connected = 0, 0
-#         teams_id, blocked_players_id = None, None
-#
-#         generated_id = insert_query('''INSERT INTO players(full_name, country,
-#             sports_club, is_active, is_connected, teams_id, blocked_players_id)
-#             VALUES (?,?,?,?,?,?,?)''', (player_name, country, sports_club,
-#                                         is_active, is_connected, teams_id, blocked_players_id))
-#
-#         new_player = Player.from_query_result(generated_id, player_name, country,
-#                 sports_club, is_active, is_connected, teams_id, blocked_players_id)
-#         return new_player
-#
-#     elif existing_player.blocked_players_id == 1:
-#         return JSONResponse(status_code=400, content=f'Player {player_name} is blocked.')
-
-
-
-
 " 4. ENTER WINNER"
-def enter_match_winner(match: Match, p1_score: float, p2_score: float, tournament_trophy: int = 0):
+def enter_match_winner(match: Match, p1_score, p2_score, tournament_trophy: int = 0):
 # ONE ON ONE
     if match.game_type == 'one on one':
         p_type = 'player'
@@ -156,40 +113,58 @@ def enter_match_winner(match: Match, p1_score: float, p2_score: float, tournamen
 
 # check tournament stage - the new tournament stage is set after matches creation
     t_title = match.tournament_name
-    flag = None
-    stage = 0
     if t_title != 'not part of a tournament':
-        flag = True
-        new_t_stage = read_query('SELECT stage FROM tournaments WHERE title = ?',
+        current_stage = read_query('SELECT stage FROM tournaments WHERE title = ?',
                                    (t_title,))
-        stage = new_t_stage[0][0]
-
-# THE WINNER
-    p1_stage, p2_stage = 0, 0
-    if p1_score > p2_score:
-        winner = p1_name
-        p1_win, p1_loss = 1, 0
-        p2_win, p2_loss = 0, 1
-        if flag:
-            p1_stage = stage
-            p2_stage = stage-1
-        else:
-            p2_stage = match.stage
-
-    elif p1_score < p2_score:
-        winner = p2_name
-        p1_win, p1_loss = 0, 1
-        p2_win, p2_loss = 1, 0
-        if flag:
-            p1_stage = stage-1
-            p2_stage = stage
-        else:
-            p2_stage = match.stage
+        stage = current_stage[0][0] + 1
     else:
-        winner = 'draw'
-        p1_win, p1_loss = 0, 0
-        p2_win, p2_loss = 0, 0
-        p1_stage, p2_stage = stage-1, stage # on draw p1 gets walkover (служебна победа)
+        stage = 0
+
+
+# TIME vs SCORE LIMIT
+    if match.match_format == 'score limit':
+        p1_score, p2_score = int(p1_score), int(p2_score)
+        p1_win, p1_loss, p2_win, p2_loss, winner, p1_stage, p2_stage = score_winner(
+            p1_score, p2_score, p1_name, p2_name, stage, match)
+
+    else:   # time limit
+        p1_score, p2_score = float(p1_score), float(p2_score)
+        p1_win, p1_loss, p2_win, p2_loss, winner, p1_stage, p2_stage = time_winner(
+            p1_score, p2_score, p1_name, p2_name, stage, match)
+
+
+# THE WINNER ON SCORE LIMIT
+#     p1_stage, p2_stage = 0, 0
+#     if p1_score > p2_score:
+#         winner = p1_name
+#         p1_win, p1_loss = 1, 0
+#         p2_win, p2_loss = 0, 1
+#         if flag:
+#             p1_stage = stage
+#             p2_stage = stage-1
+#         else:
+#             p2_stage = match.stage
+#
+#     elif p1_score < p2_score:
+#         winner = p2_name
+#         p1_win, p1_loss = 0, 1
+#         p2_win, p2_loss = 1, 0
+#         if flag:
+#             p1_stage = stage-1
+#             p2_stage = stage
+#         else:
+#             p2_stage = match.stage
+#     else:
+#         winner = 'draw'
+#         p1_win, p1_loss = 0, 0
+#         p2_win, p2_loss = 0, 0
+#         p1_stage, p2_stage = stage-1, stage # on draw p1 gets walkover (служебна победа)
+
+
+
+
+
+
 
 # update match winner
     update_query('''UPDATE matches SET winner = ? WHERE id = ?''',
@@ -221,16 +196,87 @@ def enter_match_winner(match: Match, p1_score: float, p2_score: float, tournamen
 
     if winner == 'draw':
         return {'message': f'Match id: {match.id} ended in a draw.'}
-    elif winner == 'draw' and flag:
+    elif winner == 'draw' and stage > 0:
         return {'message': f'Match id: {match.id}, part of {t_title}, ended in a draw.'}
-    elif flag:
-        return {'message': f'The winner ot match  id: {match.id}, part of {t_title}, is {winner}. Results {p1_name} vs {p2_name} - {p1_score} : {p2_score}!'}
-    return {'message': f'The winner ot match id: {match.id} is {winner}. Results {p1_name} vs {p2_name} - {p1_score} : {p2_score}!'}
+    elif stage == 0:
+        return {'message': f'The winner of match  id: {match.id}, part of {t_title}, is {winner}. Results {p1_name} vs {p2_name} - {p1_score} : {p2_score}!'}
+    return {'message': f'The winner of match id: {match.id} is {winner}. Results {p1_name} vs {p2_name} - {p1_score} : {p2_score}!'}
 
 
 
 
-" 4.1. UPDATE STATISTICS"
+" 4.1 SCORE WINNER"
+def score_winner(p1_score: int, p2_score, p1_name: str, p2_name:str, stage: int, match: Match):
+    # THE WINNER ON SCORE LIMIT
+    p1_stage, p2_stage = 0, 0
+    if p1_score > p2_score:
+        winner = p1_name
+        p1_win, p1_loss = 1, 0
+        p2_win, p2_loss = 0, 1
+        if stage > 0:
+            p1_stage = stage
+            p2_stage = stage - 1
+        else:
+            p2_stage = match.stage
+
+
+    elif p1_score < p2_score:
+        winner = p2_name
+        p1_win, p1_loss = 0, 1
+        p2_win, p2_loss = 1, 0
+        if stage > 0:
+            p1_stage = stage - 1
+            p2_stage = stage
+        else:
+            p2_stage = match.stage
+    else:
+        winner = 'draw'
+        p1_win, p1_loss = 0, 0
+        p2_win, p2_loss = 0, 0
+        p1_stage, p2_stage = stage - 1, stage  # on draw p1 gets walkover (служебна победа)
+
+    return p1_win, p1_loss, p2_win, p2_loss, winner, p1_stage, p2_stage
+
+
+
+
+" 4.2 TIME WINNER"
+def time_winner(p1_score, p2_score, p1_name: str, p2_name:str, stage: int, match: Match):
+    # THE WINNER ON SCORE LIMIT
+    p1_stage, p2_stage = 0, 0
+    if p1_score < p2_score:
+        winner = p1_name
+        p1_win, p1_loss = 1, 0
+        p2_win, p2_loss = 0, 1
+        if stage > 0:
+            p1_stage = stage
+            p2_stage = stage - 1
+        else:
+            p2_stage = match.stage
+
+    elif p1_score > p2_score:
+        winner = p2_name
+        p1_win, p1_loss = 0, 1
+        p2_win, p2_loss = 1, 0
+        if stage > 0:
+            p1_stage = stage - 1
+            p2_stage = stage
+        else:
+            p2_stage = match.stage
+    else:
+        winner = 'draw'
+        p1_win, p1_loss = 0, 0
+        p2_win, p2_loss = 0, 0
+        p1_stage, p2_stage = stage - 1, stage  # on draw p1 gets walkover (служебна победа)
+
+    return p1_win, p1_loss, p2_win, p2_loss, winner, p1_stage, p2_stage
+
+
+
+
+
+
+" 4.3. UPDATE STATISTICS"
 def update_statistics(p_type:str, participant_id: int, participant_name: str, participant_score: float,
                       opponent_name: str, opponent_score:float, win: int, loss: int, matches_id: int,
                       tournament_name: str, stage: int, date, tournament_trophy: int = 0):
@@ -290,6 +336,8 @@ def get_player_by_full_name_v2(full_name: str):
     return result
 
 
+
+
 def get_team_by_name_v2(name: str):
     row_data = read_query('''SELECT id, team_name, number_of_players, owners_id 
                                 FROM teams where team_name = ?''', (name,))
@@ -298,6 +346,24 @@ def get_team_by_name_v2(name: str):
     data = row_data[0]
     actual = Team.from_query_result(*data)
     return actual
+
+
+
+
+
+def get_knockout_matches_by_tournament(title: str, stage: int):
+    row_data = read_query('''SELECT id, match_format, game_type, sport, participant_1, participant_2, 
+            creator, date, winner, tournament_name, stage FROM matches 
+            WHERE tournament_name = ? AND stage = ?''', (title, stage, ))
+
+    if row_data is None:
+        return JSONResponse(status_code=404, content=f'There are no matches for tournament "{title}"')
+    else:
+        result = []
+        for el in row_data:
+            match_dict = Match.from_query_result(*el)
+            result.append(match_dict)
+        return result
 
 
 

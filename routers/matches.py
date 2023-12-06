@@ -125,8 +125,8 @@ def create_match(token: str,
 " 4. ENTER MATCH WINNER"
 @matches_router.put('/')
 def enter_match_winner(token: str, match_id: int,
-                       p1_score: float = Query(description='Enter participant 1 score'),
-                       p2_score: float = Query(description='Enter participant 2 score')):
+                       p1_score = Query(description='Enter participant 1 score'),
+                       p2_score = Query(description='Enter participant 2 score')):
 
     user = get_user_or_raise_401(token)
     if not (User.is_director(user) or User.is_admin(user)):

@@ -172,17 +172,17 @@ def need_or_complete(tournament: Tournament, table: str):
 
 " 6. ARRANGE TOURNAMENT KNOCKOUT MATCHES"
 def create_knockout_stage(tournament: Tournament):
+# set next tournament stage
+    new_stage = tournament.stage + 1
+    update_query('UPDATE tournaments SET stage = ? WHERE title = ?',
+                 (new_stage, tournament.title))
+
     participants_list = get_participants(tournament, tournament.stage)
     number_matches = len(participants_list) // 2
 
-# set next tournament stage
-    update_query('UPDATE tournaments SET stage = ? WHERE title = ?',
-                 (tournament.stage + 1, tournament.title))
-
-    stage = 0
     output = []
     for t_match in range(1, number_matches + 1):
-    # choose participants
+# choose participants
         participant_1 = random.choice(participants_list)
         participant_1_name = participant_1['name']
         participants_list.remove(participant_1)
@@ -190,14 +190,14 @@ def create_knockout_stage(tournament: Tournament):
         participant_2 = random.choice(participants_list)
         participant_2_name = participant_2['name']
         participants_list.remove(participant_2)
-    # set a match
+# set a match
         match_format = tournament.match_format
         game_type = tournament.game_type
         sport = tournament.sport
         creator_name = user_service.get_user_full_name_by_id(tournament.creator)
         stage_date = tournament.date + timedelta(days=1)
         t_title = tournament.title
-        stage = tournament.stage + 1
+        stage = new_stage
 
         match = match_service.create_match(match_format, game_type, sport, participant_1_name,
                                participant_2_name, creator_name, stage_date, t_title, stage)
@@ -206,7 +206,7 @@ def create_knockout_stage(tournament: Tournament):
 # update match participants stage
     table = participant_type(tournament)
     update_query(f'UPDATE tournaments_{table}s SET stage = ? WHERE tournaments_title = ?',
-                 (stage, tournament.title,))
+                 (new_stage, tournament.title,))
     return output
 
 
