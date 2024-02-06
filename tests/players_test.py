@@ -12,14 +12,14 @@ class PlayersTests(unittest.TestCase):
     def test_get_player_by_id(self, mock_read_query):
 
         # Arrange
-        mock_read_query.return_value = [(3, 'Bob Ross', 'USA', 'DIVA', 0, 0, None, None)]
+        mock_read_query.return_value = [(3, 'Bob Ross', 'USA', 'DIVA', 1, 0, None, None)]
 
         # Act
         result = player_service.get_player_by_id(3)
 
         # Assert
         mock_read_query.assert_called_once_with(
-        'SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, blocked_players_id FROM players WHERE id = ?',
+        'SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, banned_players_id FROM players WHERE id = ?',
         (3,)
         )
         self.assertTrue(result)
@@ -36,7 +36,7 @@ class PlayersTests(unittest.TestCase):
 
         # Assert
         mock_read_query.assert_called_once_with(
-        'SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, blocked_players_id FROM players WHERE id = ?',
+        'SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, banned_players_id FROM players WHERE id = ?',
         (3,)
         )
         expected_response = JSONResponse(status_code=404, content='Player with ID: 3 does not exist.')
@@ -48,14 +48,14 @@ class PlayersTests(unittest.TestCase):
     def test_get_player_by_full_name(self, mock_read_query):
 
         # Arrange
-        mock_read_query.return_value = [(3, 'Bob Ross', 'USA', 'DIVA', 0, 0, None, None)]
+        mock_read_query.return_value = [(3, 'Bob Ross', 'USA', 'DIVA', 1, 0, None, None)]
 
         # Act
         result = player_service.get_player_by_full_name('Bob Ross')
 
         # Assert
         mock_read_query.assert_called_once_with(
-        'SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, blocked_players_id FROM players WHERE full_name = ?',
+        'SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, banned_players_id FROM players WHERE full_name = ?',
         ('Bob Ross',)
         )
         self.assertTrue(result)
@@ -72,7 +72,7 @@ class PlayersTests(unittest.TestCase):
 
         # Assert
         mock_read_query.assert_called_once_with(
-        'SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, blocked_players_id FROM players WHERE full_name = ?',
+        'SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, banned_players_id FROM players WHERE full_name = ?',
         ('Bob Ross',)
         )
         expected_response = JSONResponse(status_code=404, content='Player with full name: Bob Ross does not exist.')
@@ -84,13 +84,13 @@ class PlayersTests(unittest.TestCase):
     def test_get_all_players(self, mock_read_query):
 
         # Arrange
-        mock_read_query.return_value = [(3, 'Bob Ross', 'USA', 'DIVA', 0, 0, None, None), (4, 'John Strong', 'Canada', 'Firefighters', 0, 0, None, None)]
+        mock_read_query.return_value = [(3, 'Bob Ross', 'USA', 'DIVA', 1, 0, None, None), (4, 'John Strong', 'Canada', 'Firefighters', 1, 0, None, None)]
 
         # Act
         result = player_service.get_all_players()
 
         # Assert
-        mock_read_query.assert_called_once_with('SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, blocked_players_id FROM players')
+        mock_read_query.assert_called_once_with('SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, banned_players_id FROM players')
         self.assertTrue(result)
 
 
@@ -104,7 +104,7 @@ class PlayersTests(unittest.TestCase):
         result = player_service.get_all_players()
 
         # Assert
-        mock_read_query.assert_called_once_with('SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, blocked_players_id FROM players')
+        mock_read_query.assert_called_once_with('SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, banned_players_id FROM players')
         expected_response = JSONResponse(status_code=404, content='There are no registered players.')
         self.assertEqual(result.status_code, expected_response.status_code)
         self.assertEqual(result.body, expected_response.body)
@@ -121,8 +121,8 @@ class PlayersTests(unittest.TestCase):
 
         # Assert
         mock_insert_query.assert_called_once_with(
-        'INSERT INTO players(full_name, country, sports_club, is_active, is_connected, teams_id, blocked_players_id) VALUES (?,?,?,?,?,?,?)',
-        ('Bob Ross', 'USA', 'DIVA', 0, 0, None, None)
+        'INSERT INTO players(full_name, country, sports_club, is_active, is_connected, teams_id, banned_players_id) VALUES (?,?,?,?,?,?,?)',
+        ('Bob Ross', 'USA', 'DIVA', 1, 0, None, None)
     )
         self.assertTrue(result)
 
@@ -149,11 +149,11 @@ class PlayersTests(unittest.TestCase):
         mock_update_query.return_value = None
 
         # Act
-        result = player_service.edit_is_active_in_player(0, 'Bob Ross', 1)
+        result = player_service.edit_is_active_in_player(1, 'Bob Ross', 1)
 
         # Assert
         mock_update_query.assert_called_once_with('''UPDATE players SET is_active = ? WHERE full_name = ? and is_connected = ?''',
-                (0, 'Bob Ross', 1))
+                (1, 'Bob Ross', 1))
         self.assertIsNone(result)
 
 
@@ -188,7 +188,7 @@ class PlayersTests(unittest.TestCase):
 
         # Assert
         mock_update_query.assert_called_once_with('''UPDATE players SET is_active = ? WHERE id = ? ''',
-                (1, 1))
+                (0, 1))
         self.assertIsNone(result)
     
 
@@ -203,7 +203,7 @@ class PlayersTests(unittest.TestCase):
 
         # Assert
         mock_update_query.assert_called_once_with('''UPDATE players SET is_active = ? WHERE id = ? ''',
-                (0, 1))
+                (1, 1))
         self.assertIsNone(result)
 
 
@@ -211,14 +211,14 @@ class PlayersTests(unittest.TestCase):
     def test_get_player_by_full_name_next(self, mock_read_query):
 
         # Arrange
-        mock_read_query.return_value = [(3, 'Bob Ross', 'USA', 'DIVA', 0, 0, None, None)]
+        mock_read_query.return_value = [(3, 'Bob Ross', 'USA', 'DIVA', 1, 0, None, None)]
 
         # Act
         result = player_service.get_player_by_full_name_next('Bob Ross')
 
         # Assert
         mock_read_query.assert_called_once_with(
-        'SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, blocked_players_id FROM players WHERE full_name = ?',
+        'SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, banned_players_id FROM players WHERE full_name = ?',
         ('Bob Ross',)
         )
         self.assertTrue(result)
@@ -235,7 +235,7 @@ class PlayersTests(unittest.TestCase):
 
         # Assert
         mock_read_query.assert_called_once_with(
-        'SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, blocked_players_id FROM players WHERE full_name = ?',
+        'SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, banned_players_id FROM players WHERE full_name = ?',
         ('Bob Ross',)
         )
         self.assertIsNone(result)

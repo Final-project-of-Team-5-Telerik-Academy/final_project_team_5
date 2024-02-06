@@ -497,32 +497,32 @@ class RequestsTests(unittest.TestCase):
 
 
     @patch('services.shared_service.read_query')
-    def test_id_of_blocked_player_exists(self, mock_read_query):
+    def test_id_of_banned_player_exists(self, mock_read_query):
         # Arrange
         mock_read_query.return_value = [(1,)]
 
         # Act
-        result = shared_service.id_of_blocked_player_exists(1)
+        result = shared_service.id_of_banned_player_exists(1)
 
         # Assert
         mock_read_query.assert_called_once_with(
-            'SELECT id FROM blocked_players WHERE players_id = ?',
+            'SELECT id FROM banned_players WHERE players_id = ?',
             (1,)
         )
         self.assertTrue(result)
 
 
     @patch('services.shared_service.read_query')
-    def test_id_of_blocked_player_does_not_exist(self, mock_read_query):
+    def test_id_of_banned_player_does_not_exist(self, mock_read_query):
         # Arrange
         mock_read_query.return_value = []
 
         # Act
-        result = shared_service.id_of_blocked_player_exists(1)
+        result = shared_service.id_of_banned_player_exists(1)
 
         # Assert
         mock_read_query.assert_called_once_with(
-            'SELECT id FROM blocked_players WHERE players_id = ?',
+            'SELECT id FROM banned_players WHERE players_id = ?',
             (1,)
         )
         self.assertFalse(result)

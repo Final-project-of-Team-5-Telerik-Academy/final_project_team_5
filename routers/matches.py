@@ -75,7 +75,7 @@ def create_match(token: str,
             participant_1 = participant_1.full_name
             output.append({'warning': f'{participant_1} is new to the system. We have created a profile for him but it needs to be completed'})
         else:
-            if existing_player.is_active == 1:  # 0 when player is active, 1 when player is not active
+            if existing_player.is_active == 0:  # 1 when player is active, 0 when player is not active
                 return {'message': f'{existing_player.full_name} is not active player.'}
 
             users_account = user_service.players_id_exists_in_users(existing_player.id, existing_player.full_name)
@@ -89,7 +89,7 @@ def create_match(token: str,
             participant_2 = participant_2.full_name
             output.append({'warning': f'{participant_2} is new to the system. We have created a profile for him but it needs to be completed'})
         else:
-            if existing_player.is_active == 1:  # 0 when player is active, 1 when player is not active
+            if existing_player.is_active == 0:  # 1 when player is active, 0 when player is not active
                 return {'message': f'{existing_player.full_name} is not active player.'}
 
             users_account = user_service.players_id_exists_in_users(existing_player.id, existing_player.full_name)

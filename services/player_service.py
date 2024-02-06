@@ -11,7 +11,7 @@ from services import shared_service
 def get_player_by_id(players_id: int) -> Player | None:
 
     data = read_query(
-        'SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, blocked_players_id FROM players WHERE id = ?',
+        'SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, banned_players_id FROM players WHERE id = ?',
         (players_id,)
         )
     
@@ -26,7 +26,7 @@ def get_player_by_id(players_id: int) -> Player | None:
 def get_player_by_full_name(full_name: str) -> Player | None:
 
     data = read_query(
-        'SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, blocked_players_id FROM players WHERE full_name = ?',
+        'SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, banned_players_id FROM players WHERE full_name = ?',
         (full_name,)
         )
     
@@ -39,7 +39,7 @@ def get_player_by_full_name(full_name: str) -> Player | None:
 def get_player_by_full_name_next(full_name: str) -> Player | None:
 
     data = read_query(
-        'SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, blocked_players_id FROM players WHERE full_name = ?',
+        'SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, banned_players_id FROM players WHERE full_name = ?',
         (full_name,)
         )
 
@@ -50,10 +50,10 @@ def get_all_players() -> Player | None:
     ''' Search in the database and creates a list of all players. 
     
     Returns:
-        - a list of all players(id, full_name, country, sports_club, is_active, is_connected, teams_id, blocked_players_id)
+        - a list of all players(id, full_name, country, sports_club, is_active, is_connected, teams_id, banned_players_id)
     '''
 
-    data = read_query('SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, blocked_players_id FROM players')
+    data = read_query('SELECT id, full_name, country, sports_club, is_active, is_connected, teams_id, banned_players_id FROM players')
 
     if data is None:
         return JSONResponse(status_code=404, content='There are no registered players.')
@@ -78,14 +78,14 @@ def create_player(full_name: str, country: str, sports_club: str) -> Player:
     if full_name_exists(full_name, 'players'):
         return JSONResponse(status_code=400, content=f'The full name: {full_name} is already taken!')
 
-    is_active = 0
+    is_active = 1
     is_connected = 0
     teams_id = None
-    blocked_players_id = None
+    banned_players_id = None
     
     generated_id = insert_query(
-        'INSERT INTO players(full_name, country, sports_club, is_active, is_connected, teams_id, blocked_players_id) VALUES (?,?,?,?,?,?,?)',
-        (full_name, country, sports_club, is_active, is_connected, teams_id, blocked_players_id)  
+        'INSERT INTO players(full_name, country, sports_club, is_active, is_connected, teams_id, banned_players_id) VALUES (?,?,?,?,?,?,?)',
+        (full_name, country, sports_club, is_active, is_connected, teams_id, banned_players_id)  
     )
 
     return Player(
@@ -96,7 +96,7 @@ def create_player(full_name: str, country: str, sports_club: str) -> Player:
         is_active=is_active,
         is_connected=is_connected,
         teams_id=teams_id,
-        blocked_players_id=blocked_players_id
+        banned_players_id=banned_players_id
     )
 
 
@@ -145,7 +145,7 @@ def edit_is_active_in_player_by_id(id: int) -> Player:
         - Edited player information
     '''
 
-    is_active = 1
+    is_active = 0
     update_query('''UPDATE players SET is_active = ? WHERE id = ? ''',
                 (is_active, id))
     
@@ -156,7 +156,7 @@ def back_is_active_in_player_by_id(id: int) -> Player:
     Returns:
         - Edited player information
     '''
-    is_active = 0
+    is_active = 1
     update_query('''UPDATE players SET is_active = ? WHERE id = ? ''',
                 (is_active, id))
     

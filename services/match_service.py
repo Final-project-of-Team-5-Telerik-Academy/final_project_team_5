@@ -313,7 +313,7 @@ def matches_simulations():
 
 def get_player_by_full_name_v2(full_name: str):
     row_data = read_query('''SELECT id, full_name, country, sports_club, is_active, is_connected, 
-                        teams_id, blocked_players_id FROM players WHERE full_name = ?''',
+                        teams_id, banned_players_id FROM players WHERE full_name = ?''',
                           (full_name,))
 
     if not row_data:

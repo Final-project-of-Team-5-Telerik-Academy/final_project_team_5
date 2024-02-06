@@ -181,12 +181,12 @@ def id_of_player_exists(id: int) -> bool:
             f'SELECT id FROM players WHERE id = ?',
             (id,)))
 
-def id_of_blocked_player_exists(players_id: int) -> bool:
+def id_of_banned_player_exists(players_id: int) -> bool:
     ''' Used to check if the players_id is already in the database.'''
 
     return any(
         read_query(
-            f'SELECT id FROM blocked_players WHERE players_id = ?',
+            f'SELECT id FROM banned_players WHERE players_id = ?',
             (players_id,)))
 
 

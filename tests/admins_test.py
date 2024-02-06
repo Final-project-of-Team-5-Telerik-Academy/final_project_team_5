@@ -287,62 +287,62 @@ class AdminsTests(unittest.TestCase):
 
 
     @patch('services.admin_service.insert_query')
-    def test_insert_blocked_player(self, mock_insert_query):
+    def test_insert_banned_player(self, mock_insert_query):
 
         # Arrange
         mock_insert_query.return_value = 2
 
         # Act
-        result = admin_service.insert_blocked_player(2, 'permanent')
+        result = admin_service.insert_banned_player(2, 'permanent')
 
         # Assert
         mock_insert_query.assert_called_once_with(
-        'INSERT INTO blocked_players(players_id, ban_status) VALUES (?, ?)',
+        'INSERT INTO banned_players(players_id, ban_status) VALUES (?, ?)',
         (2, 'permanent'))
         self.assertTrue(result)
 
 
     @patch('services.admin_service.read_query')
-    def test_get_all_blocked_players(self, mock_read_query):
+    def test_get_all_banned_players(self, mock_read_query):
 
         # Arrange
         mock_read_query.return_value = [(1, 3, 'permanent'), (2, 4, 'temporary')]
 
         # Act
-        result = admin_service.get_all_blocked_players()
+        result = admin_service.get_all_banned_players()
 
         # Assert
-        mock_read_query.assert_called_once_with('SELECT id, players_id, ban_status FROM blocked_players')
+        mock_read_query.assert_called_once_with('SELECT id, players_id, ban_status FROM banned_players')
         self.assertTrue(result)
 
 
     @patch('services.admin_service.read_query')
-    def test_do_not_get_all_blocked_players(self, mock_read_query):
+    def test_do_not_get_all_banned_players(self, mock_read_query):
 
         # Arrange
         mock_read_query.return_value = None
 
         # Act
-        result = admin_service.get_all_blocked_players()
+        result = admin_service.get_all_banned_players()
 
         # Assert
-        mock_read_query.assert_called_once_with('SELECT id, players_id, ban_status FROM blocked_players')
-        expected_response = JSONResponse(status_code=404, content='There are no blocked players.')
+        mock_read_query.assert_called_once_with('SELECT id, players_id, ban_status FROM banned_players')
+        expected_response = JSONResponse(status_code=404, content='There are no banned players.')
         self.assertEqual(result.status_code, expected_response.status_code)
         self.assertEqual(result.body, expected_response.body)
 
 
     @patch('services.admin_service.insert_query')
-    def test_remove_blocked_player(self, mock_insert_query):
+    def test_remove_banned_player(self, mock_insert_query):
 
         # Arrange
         mock_insert_query.return_value = None
 
         # Act
-        result = admin_service.remove_blocked_player(2)
+        result = admin_service.remove_banned_player(2)
 
         # Assert
-        mock_insert_query.assert_called_once_with('''DELETE FROM blocked_players WHERE players_id = ?''',
+        mock_insert_query.assert_called_once_with('''DELETE FROM banned_players WHERE players_id = ?''',
                  (2,))
         self.assertIsNone(result)
 

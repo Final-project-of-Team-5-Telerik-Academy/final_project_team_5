@@ -6,7 +6,7 @@ from authentication.authenticator import get_user_or_raise_401
 from services import shared_service
 from services import player_service
 from services import email_service
-from my_models.model_blocked_players import BlockedPlayers
+from my_models.model_banned_players import BannedPlayers
 
 
 _SEPARATOR = ';'
@@ -174,36 +174,36 @@ def edit_requests_promotion_status(request_status: str, type_of_request: str, id
                 (request_status, type_of_request, id))
     
 
-def insert_blocked_player(players_id: int, ban_status: str) -> BlockedPlayers | None:
+def insert_banned_player(players_id: int, ban_status: str) -> BannedPlayers | None:
     generated_id = insert_query(
-        'INSERT INTO blocked_players(players_id, ban_status) VALUES (?, ?)',
+        'INSERT INTO banned_players(players_id, ban_status) VALUES (?, ?)',
         (players_id, ban_status)
     )
 
-    return BlockedPlayers(id=generated_id, players_id=players_id, ban_status=ban_status)
+    return BannedPlayers(id=generated_id, players_id=players_id, ban_status=ban_status)
 
 
-def get_all_blocked_players() -> BlockedPlayers | None:
-    ''' Search in the database and creates a list of all blocked players. 
+def get_all_banned_players() -> BannedPlayers | None:
+    ''' Search in the database and creates a list of all banned players. 
     
     Returns:
-        - a list of all blocked players(id, players_id, ban_status)
+        - a list of all banned players(id, players_id, ban_status)
     '''
 
-    data = read_query('SELECT id, players_id, ban_status FROM blocked_players')
+    data = read_query('SELECT id, players_id, ban_status FROM banned_players')
 
     if data is None:
-        return JSONResponse(status_code=404, content='There are no blocked players.')
+        return JSONResponse(status_code=404, content='There are no banned players.')
 
-    result = (BlockedPlayers.from_query_result(*row) for row in data)
+    result = (BannedPlayers.from_query_result(*row) for row in data)
 
     return result
 
 
-def remove_blocked_player(players_id: int):
-    ''' Used for removing a blocked player from the database.'''
+def remove_banned_player(players_id: int):
+    ''' Used for removing a banned player from the database.'''
 
-    insert_query('''DELETE FROM blocked_players WHERE players_id = ?''',
+    insert_query('''DELETE FROM banned_players WHERE players_id = ?''',
                  (players_id,))
 
 
@@ -326,7 +326,7 @@ def edit_user_by_id(id: int, new_role: str, command: str, players_id: int , x_to
             elif User.is_director(old_user):
                 edit_user_role(old_user, new_role)
                 
-                is_active = 0
+                is_active = 1
                 is_connected = 1
                 player_service.edit_is_active_in_player(is_active, old_user.full_name, is_connected)
 
@@ -342,7 +342,7 @@ def edit_user_by_id(id: int, new_role: str, command: str, players_id: int , x_to
                 is_connected = 0
                 player_service.edit_is_connected_in_player(is_connected, old_user.players_id)
 
-                is_active = 1
+                is_active = 0
                 is_connected = 0
                 player_service.edit_is_active_in_player(is_active, old_user.full_name, is_connected)
 
@@ -364,7 +364,7 @@ def edit_user_by_id(id: int, new_role: str, command: str, players_id: int , x_to
                     type_of_request = 'promotion'
                     edit_requests_promotion_status(request_status, type_of_request, id)
                 
-                is_active = 1
+                is_active = 0
                 is_connected = 1
                 player_service.edit_is_active_in_player(is_active, old_user.full_name, is_connected)
 
@@ -376,8 +376,8 @@ def edit_user_by_id(id: int, new_role: str, command: str, players_id: int , x_to
         return JSONResponse(status_code=400, content="Unrecognized request.")
 
 
-def block_player_by_id(players_id: int, ban_status: str, x_token: str):
-    ''' Used for blockin players. Only admins can delete it.
+def ban_player_by_id(players_id: int, ban_status: str, x_token: str):
+    ''' Used for banning players. Only admins can ban players.
 
     Args:
         - players_id: int(URL link)
@@ -385,63 +385,63 @@ def block_player_by_id(players_id: int, ban_status: str, x_token: str):
         - JWT token
     
     Returns:
-        - Blocked player
+        - Banned player
     '''
     
     user = get_user_or_raise_401(x_token)
     
     if not User.is_admin(user):
-        return JSONResponse(status_code=401, content='You must be an admin to be able to block a player.')
+        return JSONResponse(status_code=401, content='You must be an admin to be able to ban a player.')
     
     elif not shared_service.id_of_player_exists(players_id):
         return JSONResponse(status_code=404, content=f'Player with id: {players_id} does not exist.')
     
-    elif not shared_service.id_of_blocked_player_exists(players_id):
-        insert_blocked_player(players_id, ban_status)
+    elif not shared_service.id_of_banned_player_exists(players_id):
+        insert_banned_player(players_id, ban_status)
     else:
-        return JSONResponse(status_code=404, content = f'Player with id: {players_id} is already blocked.')
+        return JSONResponse(status_code=404, content = f'Player with id: {players_id} is already banned.')
     
     player_service.edit_is_active_in_player_by_id(players_id)
 
-    return {'message': 'Player is blocked successfully.'}
+    return {'message': 'Player is banned successfully.'}
 
 
-def find_all_blocked_players(x_token: str):
-    ''' Used for finding all blocked players.
+def find_all_banned_players(x_token: str):
+    ''' Used for finding all banned players.
 
     Args:
         - JWT token
     
     Returns:
-        - list of blocked players
+        - list of banned players
     '''
     
     user = get_user_or_raise_401(x_token)
     
     if User.is_admin(user):
-        list_of_players = get_all_blocked_players()
+        list_of_players = get_all_banned_players()
     else: 
-        return JSONResponse(status_code=401, content='You must be an admin to see the list of blocked players.')
+        return JSONResponse(status_code=401, content='You must be an admin to see the list of banned players.')
 
     return list_of_players
 
 
-def remove_block_of_player(players_id: int, x_token: str):
-    ''' Used for deleting a player from the blocked_players database. Only admins can do it.
+def remove_ban_of_player(players_id: int, x_token: str):
+    ''' Used for deleting a player from the banned_players database. Only admins can do it.
 
     Returns:
-        - Player is unblocked.
+        - Player is unbanned.
     '''   
     
     user = get_user_or_raise_401(x_token)
     
     if not User.is_admin(user):
-        return JSONResponse(status_code=401, content='You must be an admin to be able to unblock a player.')
+        return JSONResponse(status_code=401, content='You must be an admin to be able to unban a player.')
     
-    elif not shared_service.id_of_blocked_player_exists(players_id):
-        return JSONResponse(status_code=404, content=f"Player with id {players_id} is not blocked.")
+    elif not shared_service.id_of_banned_player_exists(players_id):
+        return JSONResponse(status_code=404, content=f"Player with id {players_id} is not banned.")
     
-    remove_blocked_player(players_id)
+    remove_banned_player(players_id)
     player_service.back_is_active_in_player_by_id(players_id)
     
-    return {'Message': 'Player is unblocked.'}
+    return {'Message': 'Player is unbanned.'}

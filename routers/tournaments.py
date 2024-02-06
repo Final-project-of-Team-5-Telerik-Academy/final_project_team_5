@@ -113,7 +113,7 @@ def add_participant_to_tournament(title: str, participant: str, token: str):
         elif tournament_service.is_player_in_tournament(player.id, tournament.id, table):
             return JSONResponse(status_code=400, content=f'{player.full_name} is already in {tournament.title}')
 
-        if player.is_active == 1:  # 0 when player is active, 1 when player is not active
+        if player.is_active == 0:  # 1 when player is active, 0 when player is not active
             return {'message': f'{player.full_name} is not active player.'}
 
         result = tournament_service.add_player_to_tournament(player, tournament)
@@ -175,7 +175,7 @@ def arrange_tournament_matches(title: str, token: str, matches_per_day: int | No
     tournament = tournament_service.get_tournament_by_title(title)
     if not tournament:
         return JSONResponse(status_code=404, content=f'{title} not found')
-    if tournament.is_complete == 0:
+    if tournament.is_completed == 0:
         return JSONResponse(status_code=400, content=f'{title} is not completed. You must add participants.')
 
 

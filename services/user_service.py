@@ -251,7 +251,7 @@ def send_promotion_request(type_of_request:str, users_id:int) -> AdminRequests |
         (type_of_request, users_id, status)
     )
     # ДА СЕ ИЗПОЛЗВА КОГАТО АДМИН ОДОБРЯВА АДМИН REQUEST
-    # is_active = 1
+    # is_active = 0
     # players_id = User.players_id #TODO
     # update_query('''UPDATE players SET is_active = ? WHERE id = ?''',
     #             (is_active, players_id))
