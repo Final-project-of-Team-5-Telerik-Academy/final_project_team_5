@@ -5,7 +5,7 @@ class Status:
     TEMPORARY = 'temporary'
     PERMANENT = 'permanent'
     
-class BlockedPlayers(BaseModel):
+class BannedPlayers(BaseModel):
     id: int
     players_id: int
     ban_status: str

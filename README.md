@@ -90,14 +90,14 @@ Here you will understand how to properly work with the program.
 ### Delete User ❌
 >Admin can delete any user's account.
 
-### Blocked Players 🚫
->Admin can temporary or permanently block any user's account.
+### Banned Players 🚫
+>Admin can temporary or permanently ban any user's account.
 
-### Find All Blocked Players 👥
->Admin can temporary or permanently block any user's account.
+### Find All Banned Players 👥
+>Admin can temporary or permanently ban any user's account.
 
-### Remove Players Block 🆗
->Admin can temporary or permanently block any user's account.
+### Remove Players Ban 🆗
+>Admin can temporary or permanently ban any user's account.
 
 
 <!-- Players -->

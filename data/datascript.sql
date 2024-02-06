@@ -7,6 +7,9 @@ SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,N
 -- -----------------------------------------------------
 -- Schema mydb
 -- -----------------------------------------------------
+-- -----------------------------------------------------
+-- Schema match_score_db
+-- -----------------------------------------------------
 
 -- -----------------------------------------------------
 -- Schema match_score_db
@@ -15,9 +18,9 @@ CREATE SCHEMA IF NOT EXISTS `match_score_db` DEFAULT CHARACTER SET latin1 ;
 USE `match_score_db` ;
 
 -- -----------------------------------------------------
--- Table `match_score_db`.`blocked_players`
+-- Table `match_score_db`.`banned_players`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `match_score_db`.`blocked_players` (
+CREATE TABLE IF NOT EXISTS `match_score_db`.`banned_players` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `players_id` INT(11) NOT NULL,
   `ban_status` VARCHAR(45) NOT NULL,
@@ -47,16 +50,16 @@ CREATE TABLE IF NOT EXISTS `match_score_db`.`players` (
   `full_name` VARCHAR(45) NOT NULL,
   `country` VARCHAR(45) NOT NULL,
   `sports_club` VARCHAR(45) NOT NULL,
-  `is_active` INT(11) NULL DEFAULT 0,
+  `is_active` INT(11) NULL DEFAULT 1,
   `is_connected` INT(11) NULL DEFAULT 0,
   `teams_id` INT(11) NULL DEFAULT NULL,
-  `blocked_players_id` INT(11) NULL DEFAULT NULL,
+  `banned_players_id` INT(11) NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   INDEX `fk_players_teams1_idx` (`teams_id` ASC) VISIBLE,
-  INDEX `fk_players_blocked_players1_idx` (`blocked_players_id` ASC) VISIBLE,
+  INDEX `fk_players_blocked_players1_idx` (`banned_players_id` ASC) VISIBLE,
   CONSTRAINT `fk_players_blocked_players1`
-    FOREIGN KEY (`blocked_players_id`)
-    REFERENCES `match_score_db`.`blocked_players` (`id`)
+    FOREIGN KEY (`banned_players_id`)
+    REFERENCES `match_score_db`.`banned_players` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_players_teams1`
@@ -232,7 +235,7 @@ CREATE TABLE IF NOT EXISTS `match_score_db`.`tournaments` (
   `game_type` VARCHAR(45) NOT NULL,
   `winner` VARCHAR(45) NULL DEFAULT NULL,
   `users_creator_id` INT(11) NOT NULL,
-  `is_complete` TINYINT(4) NOT NULL DEFAULT 0,
+  `is_completed` TINYINT(4) NOT NULL DEFAULT 0,
   `stage` INT(11) NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   INDEX `fk_tournaments_users1_idx` (`users_creator_id` ASC) VISIBLE,
@@ -300,6 +303,7 @@ SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
 
 
+
 -- Reset AUTO_INCREMENT values for tables
 ALTER TABLE match_score_db.teams AUTO_INCREMENT = 1;
 ALTER TABLE match_score_db.players AUTO_INCREMENT = 1;
@@ -308,4 +312,4 @@ ALTER TABLE match_score_db.admin_requests AUTO_INCREMENT = 1;
 ALTER TABLE match_score_db.matches AUTO_INCREMENT = 1;
 ALTER TABLE match_score_db.tournaments AUTO_INCREMENT = 1;
 ALTER TABLE match_score_db.director_requests AUTO_INCREMENT = 1;
-ALTER TABLE match_score_db.blocked_players AUTO_INCREMENT = 1;
+ALTER TABLE match_score_db.banned_players AUTO_INCREMENT = 1;

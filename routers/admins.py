@@ -61,11 +61,11 @@ def delete_user(id: int = Query(..., description='Enter ID of the user you want 
     return admin_service.delete_users_account(id, x_token)
 
 
-@admins_router.post('/blocked/players', description='Please enter the id of the player you want to block:')
-def blocked_players(players_id: int = Query(..., description='Enter ID of the player you want to block:'),
-                 ban_status: str = Form(..., description='Choose ban status:',example='temporary', enum = ['temporary', 'permanent']),
+@admins_router.post('/ban/players', description='Please enter the id of the player you want to ban:')
+def ban_a_player(players_id: int = Query(..., description='Enter ID of the player you want to ban:'),
+                 ban_status: str = Form(..., description='Choose a ban status:',example='temporary', enum = ['temporary', 'permanent']),
                  x_token: str = Header()):
-    ''' Used for blockin players. Only admins can delete it.
+    ''' Used for banning players. Only admins can ban players.
 
     Args:
         - players_id: int(URL link)
@@ -73,33 +73,33 @@ def blocked_players(players_id: int = Query(..., description='Enter ID of the pl
         - JWT token
     
     Returns:
-        - Blocked player
+        - Banned player
     '''
     
-    return admin_service.block_player_by_id(players_id, ban_status, x_token)
+    return admin_service.ban_player_by_id(players_id, ban_status, x_token)
 
 
-@admins_router.get('/blocked/players', description= 'Show all blocked players:')
-def find_all_blocked_players(x_token: str = Header()):
-    ''' Used for finding all blocked players.
+@admins_router.get('/ban/players', description= 'Show all banned players:')
+def find_all_banned_players(x_token: str = Header()):
+    ''' Used for finding all banned players.
 
     Args:
         - JWT token
     
     Returns:
-        - list of blocked players
+        - list of banned players
     '''
 
-    return admin_service.find_all_blocked_players(x_token)
+    return admin_service.find_all_banned_players(x_token)
 
 
-@admins_router.delete('/blocked/players', description="Remove player's block:")
-def remove_players_block(players_id: int = Query(..., description='Enter ID of the blocked player you want to unblock:'), 
+@admins_router.delete('/ban/players', description="Remove player's ban:")
+def remove_players_ban(players_id: int = Query(..., description='Enter ID of the banned player you want to unban:'), 
                 x_token: str = Header()):
-    ''' Used for deleting a player from the blocked_players database. Only admins can do it.
+    ''' Used for deleting a player from the banned_players database. Only admins can do it.
 
     Returns:
-        - Player is unblocked.
+        - Player is unbanned.
     '''
 
-    return admin_service.remove_block_of_player(players_id, x_token)
+    return admin_service.remove_ban_of_player(players_id, x_token)

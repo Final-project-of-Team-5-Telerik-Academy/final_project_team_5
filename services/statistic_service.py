@@ -176,7 +176,7 @@ def all_players_statistics(sort: str, order: str):
         player_name = row[1]
         country = row[2]
         sports_club = row[3]
-        is_active = ('yes' if row [4] == 0 else 'no')
+        is_active = ('yes' if row [4] == 1 else 'no')
         win = (0 if row[5] is None else row[5])
         loss = (0 if row[6] is None else row[6])
         matches = (0 if row[7] is None else row[7])

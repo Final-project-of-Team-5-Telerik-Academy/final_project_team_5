@@ -120,8 +120,8 @@ class TeamsTests(unittest.TestCase):
         # Arrange
         team_query_result = (3, 'Cherries', 3, 2)
         players_query_result = [
-            ('13', 'Carlos Rodriguez', 'Jamaica', 'NeverBackDown', 0, 0, 3, None),
-            ('14', 'Camille Dupont', 'France', 'La Sport Club', 0, 0, 3, None)
+            ('13', 'Carlos Rodriguez', 'Jamaica', 'NeverBackDown', 1, 0, 3, None),
+            ('14', 'Camille Dupont', 'France', 'La Sport Club', 1, 0, 3, None)
         ]
         mock_read_query_additional.return_value = team_query_result
         mock_read_query.return_value = players_query_result
@@ -140,9 +140,9 @@ class TeamsTests(unittest.TestCase):
             owners_id=2,
             players=[
                 Player(id=13, full_name='Carlos Rodriguez', country='Jamaica', sports_club='NeverBackDown',
-                       is_active=0, is_connected=0, teams_id=3, blocked_players_id=None),
+                       is_active=1, is_connected=0, teams_id=3, banned_players_id=None),
                 Player(id=14, full_name='Camille Dupont', country='France', sports_club='La Sport Club',
-                       is_active=0, is_connected=0, teams_id=3, blocked_players_id=None)
+                       is_active=1, is_connected=0, teams_id=3, banned_players_id=None)
             ])
         self.assertEqual(result, expected_result)
 

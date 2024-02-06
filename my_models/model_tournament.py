@@ -15,12 +15,12 @@ class Tournament(BaseModel):
     game_type: str
     winner: str | None
     creator: str | int
-    is_complete: str | bool
+    is_completed: str | bool
     stage: int
 
     @classmethod
     def from_query_result(cls, id: int, title: str, number_participants: int, t_format: str,
-                          match_format: str, sport, date, prize, game_type, winner, creator: str, is_complete, stage):
+                          match_format: str, sport, date, prize, game_type, winner, creator: str, is_completed, stage):
 
         # creator_name = user_service.get_user_full_name_by_id(creator)
         result =cls(id = id,
@@ -34,6 +34,6 @@ class Tournament(BaseModel):
                     game_type = game_type,
                     winner = winner,
                     creator = creator,
-                    is_complete = False if is_complete == 0 else True,
+                    is_completed = False if is_completed == 0 else True,
                     stage = stage)
         return result

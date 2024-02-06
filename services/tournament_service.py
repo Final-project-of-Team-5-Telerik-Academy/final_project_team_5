@@ -15,7 +15,7 @@ from itertools import combinations
 " 1. VIEW ALL TOURNAMENTS"
 def get_tournaments(sort: str | None, status: str):
     sql = '''SELECT id, title, number_participants, t_format, match_format, sport, date, prize, 
-    game_type, winner, users_creator_id, is_complete, stage FROM tournaments '''
+    game_type, winner, users_creator_id, is_completed, stage FROM tournaments '''
 
     where_clause = []
 
@@ -39,7 +39,7 @@ def get_tournaments(sort: str | None, status: str):
 " 2. VIEW TOURNAMENT BY TITLE"
 def get_tournament_by_title(title: str) -> Tournament | None:
     row_data = read_query('''SELECT id, title, number_participants, t_format, match_format,
-        sport, date, prize, game_type, winner, users_creator_id, is_complete, stage 
+        sport, date, prize, game_type, winner, users_creator_id, is_completed, stage 
         FROM tournaments WHERE title = ?''', (title,))
 
     if not row_data:
@@ -62,10 +62,10 @@ def create_tournament(title: str, number_participants: int, t_format: str, match
 
     t_id = generated_tournament
     creator_name = creator.full_name
-    is_complete = False
+    is_completed = False
 
     tournament = Tournament.from_query_result(t_id, title, number_participants,
-                                              t_format, match_format, sport, t_date, prize, game_type, winner, creator_name, is_complete, stage)
+                                              t_format, match_format, sport, t_date, prize, game_type, winner, creator_name, is_completed, stage)
 
     return tournament
 
@@ -164,7 +164,7 @@ def need_or_complete(tournament: Tournament):
         return {'message': f'you need {difference} participants to complete the tournament.'}
 
     elif difference == 0:
-        update_query('UPDATE tournaments SET is_complete = 1 WHERE title = ?',
+        update_query('UPDATE tournaments SET is_completed = 1 WHERE title = ?',
                      (tournament.title,))
         return {'message': f'{tournament.title} is ready to begin.'}
 
