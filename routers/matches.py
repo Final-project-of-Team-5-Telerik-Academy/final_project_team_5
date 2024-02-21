@@ -11,7 +11,7 @@ matches_router = APIRouter(prefix='/matches', tags=['Matches'])
 
 
 " 1. VIEW MATCHES"
-@matches_router.post('/', description='You can view all matches')
+@matches_router.post('/', description='You can view all matches in selected order.')
 def view_all_matches(sort: str = Form('asc', description='sort by date',
                                       enum=['asc', 'desc']),
                     status: str = Form('all', description='filter',
@@ -22,7 +22,7 @@ def view_all_matches(sort: str = Form('asc', description='sort by date',
 
 
 " 1.1. VIEW MATCHES BY TOURNAMENT"
-@matches_router.get('/{title}/matches')
+@matches_router.get('/{title}/matches', description = "Search tournament by it's title.")
 def view_matches_by_tournament(title: str):
     tournament = tournament_service.get_tournament_by_title(title)
     if tournament is None:
@@ -36,7 +36,7 @@ def view_matches_by_tournament(title: str):
 
 
 " 2. VIEW MATCH BY ID"
-@matches_router.get('/{id}', description='You can view all matches')
+@matches_router.get('/{id}', description='You can find and view match by id.')
 def view_match_by_id(id_m: int):
     result = match_service.get_match_by_id(id_m)
     if not result:
@@ -47,7 +47,7 @@ def view_match_by_id(id_m: int):
 
 
 " 3. CREATE MATCH"
-@matches_router.post('/create/{match}', description='You can create new match')
+@matches_router.post('/create/{match}', description='You can create a new match.')
 def create_match(token: str,
                  game_type: str = Form('one on one', enum=['one on one', 'team game']),
                  sport: str = Form(..., enum=sports_list),
@@ -60,7 +60,7 @@ def create_match(token: str,
 # check if authenticated and role
     user = get_user_or_raise_401(token)
     if not (User.is_director(user) or User.is_admin(user)):
-        return JSONResponse(status_code=403, content='Only Admin and Director can create a match')
+        return JSONResponse(status_code=403, content='Only Admin and Director can create a match!')
 
     shared_service.check_date_format(date)
     date = datetime.strptime(date, "%Y-%m-%d").date()
@@ -73,7 +73,7 @@ def create_match(token: str,
         if existing_player is None:
             participant_1 = player_service.create_player(participant_1, 'add country', 'add sports club')
             participant_1 = participant_1.full_name
-            output.append({'warning': f'{participant_1} is new to the system. We have created a profile for him but it needs to be completed'})
+            output.append({'warning': f'{participant_1} is new to the system. We have created a profile for him but it needs to be completed.'})
         else:
             if existing_player.is_active == 0:  # 1 when player is active, 0 when player is not active
                 return {'message': f'{existing_player.full_name} is not active player.'}
@@ -87,14 +87,14 @@ def create_match(token: str,
         if existing_player is None:
             participant_2 = player_service.create_player(participant_2, 'add country', 'add sports club')
             participant_2 = participant_2.full_name
-            output.append({'warning': f'{participant_2} is new to the system. We have created a profile for him but it needs to be completed'})
+            output.append({'warning': f'{participant_2} is new to the system. We have created a profile for him but it needs to be completed.'})
         else:
             if existing_player.is_active == 0:  # 1 when player is active, 0 when player is not active
-                return {'message': f'{existing_player.full_name} is not active player.'}
+                return {'message': f'{existing_player.full_name} is not an active player.'}
 
             users_account = user_service.players_id_exists_in_users(existing_player.id, existing_player.full_name)
             if users_account is not None:
-                email_service.send_email(users_account.email, 'added_to_match')
+                email_service.send_email(users_account.email, 'added_to_match.')
 
 
 # TEAM GAME
@@ -110,7 +110,7 @@ def create_match(token: str,
         participant_2 = existing_team.team_name
 
     if participant_1 == participant_2:
-        return JSONResponse(status_code=400, content='The participants must be different .')
+        return JSONResponse(status_code=400, content='The participants must be different!')
 
     match = match_service.create_match(match_format, game_type, sport, participant_1,
                                        participant_2, user.full_name, date, tournament_name)
@@ -123,18 +123,19 @@ def create_match(token: str,
 
 
 " 4. ENTER MATCH WINNER"
-@matches_router.put('/')
-def enter_match_winner(token: str, match_id: int,
+@matches_router.put('/', description="Add the score of two player's matches and the id of their match.")
+def enter_match_winner(token: str, 
+                       match_id: int = Query(description='Enter the id of the current match.'),
                        p1_score = Query(description='Enter participant 1 score'),
                        p2_score = Query(description='Enter participant 2 score')):
 
     user = get_user_or_raise_401(token)
     if not (User.is_director(user) or User.is_admin(user)):
-        return JSONResponse(status_code=403, content='Only Admin and Director can create a match')
+        return JSONResponse(status_code=403, content='Only Admin and Director can create a match!')
 
     match = match_service.get_match_by_id(match_id)
     if  match is None:
-        return JSONResponse(status_code=404, content='There is no match with that id')
+        return JSONResponse(status_code=404, content='There is no match with that id!')
 
     if match.winner != 'not played':
         return JSONResponse(status_code=400,
@@ -147,15 +148,15 @@ def enter_match_winner(token: str, match_id: int,
 
 
 " 5. DELETE A MATCH"
-@matches_router.delete('/{id}')
+@matches_router.delete('/{id}', description = 'Delete a match by id.')
 def delete_match(id_m: int, token: str):
     user = get_user_or_raise_401(token)
     if not User.is_admin(user):
-        return JSONResponse(status_code=403, content='Only Admin can delete a match')
+        return JSONResponse(status_code=403, content='Only Admin can delete a match!')
 
     match = match_service.get_match_by_id(id_m)
     if not match:
-        return JSONResponse(status_code=404, content=f'There is no match with id {id_m}.')
+        return JSONResponse(status_code=404, content=f'There is no match with id: {id_m}.')
 
     result = match_service.delete_match(id_m)
     return result
@@ -163,17 +164,17 @@ def delete_match(id_m: int, token: str):
 
 
 " 5.1. DELETE MATCHES BY TOURNAMENT"
-@matches_router.delete('/{title}/matches')
+@matches_router.delete('/{title}/matches', description= "Delete a match by the name of it's tournament.")
 def delete_matches_by_tournament(title: str, token: str):
     user = get_user_or_raise_401(token)
     if not (User.is_director(user) or User.is_admin(user)):
-        return JSONResponse(status_code=403, content='Only Admin and Director can delete a match')
+        return JSONResponse(status_code=403, content='Only Admin and Director can delete a match!')
 
     output = list()
-    output.append({'message': f'All matches from tournament {title} has been deleted'})
+    output.append({'message': f'All matches from tournament {title} has been deleted.'})
     matches = match_service.get_matches_by_tournament(title)
     if not matches:
-        return JSONResponse(status_code=404, content=f"There are no matches for tournament '{title}'")
+        return JSONResponse(status_code=404, content=f"There are no matches for tournament: '{title}'!")
     for match in matches:
         result = match_service.delete_match(match.id)
         output.append(result)
@@ -183,16 +184,16 @@ def delete_matches_by_tournament(title: str, token: str):
 
 
 " 6. MATCHES SIMULATIONS"
-@matches_router.get('/simulations/')
+@matches_router.get('/simulations/', description = 'You can see an information about all of the created match simulations.')
 def matches_simulations(token: str):
     creator = get_user_or_raise_401(token)
     if not (User.is_director(creator) or User.is_admin(creator)):
-        return JSONResponse(status_code=403, content='Only Admin and Director can simulate a matches results')
+        return JSONResponse(status_code=403, content='Only Admin and Director can simulate a matches results!')
 
     output = []
     result = match_service.matches_simulations()
     if not result:
-        return {'message': 'Not available matches for simulation'}
+        return {'message': 'Not available matches for simulation!'}
     else:
         output.append('-= MATCHES SIMULATIONS RESULTS =-')
         output.append(result)
