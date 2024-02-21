@@ -70,15 +70,32 @@ Here you will understand how to properly work with the program.
 >Option to delete your own account.
 
 
+<!-- Messages -->
+
+### <h2><br><br>MESSAGES 📩</h2>
+### Get Conversations 📨
+>User can view all his/hers conversations.
+
+### View Conversation 📩
+>User can open a specific convesation.
+
+### Send New Message 📤
+>User can write a new message into an existing conversation or also create a new conversation.
+
+### Edit Message By ID 🔧
+>User can edit an existing message (only if it is written by the same user).
+
+### Delete Message ❌
+>User can delete a message (only if it is written by the same user)
+
+
 <!-- Admins -->
 
 ### <h2><br><br>ADMINS 💻</h2>
 ### User Info ℹ️
-
 >Admin can search for any account information without the user's password.
 
 ### Edit User 🔧
-
 >Admin can edit any user (with user's id) by will or by a request(promotion or connection). 
 >Options for editing:
     >Promote user's role from spectator to player.

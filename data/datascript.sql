@@ -5,9 +5,6 @@ SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
 
 -- -----------------------------------------------------
--- Schema mydb
--- -----------------------------------------------------
--- -----------------------------------------------------
 -- Schema match_score_db
 -- -----------------------------------------------------
 
@@ -26,6 +23,7 @@ CREATE TABLE IF NOT EXISTS `match_score_db`.`banned_players` (
   `ban_status` VARCHAR(45) NOT NULL,
   PRIMARY KEY (`id`))
 ENGINE = InnoDB
+AUTO_INCREMENT = 1
 DEFAULT CHARACTER SET = latin1;
 
 
@@ -39,6 +37,7 @@ CREATE TABLE IF NOT EXISTS `match_score_db`.`teams` (
   `owners_id` INT(11) NULL DEFAULT NULL,
   PRIMARY KEY (`id`))
 ENGINE = InnoDB
+AUTO_INCREMENT = 1
 DEFAULT CHARACTER SET = latin1;
 
 
@@ -56,8 +55,8 @@ CREATE TABLE IF NOT EXISTS `match_score_db`.`players` (
   `banned_players_id` INT(11) NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   INDEX `fk_players_teams1_idx` (`teams_id` ASC) VISIBLE,
-  INDEX `fk_players_blocked_players1_idx` (`banned_players_id` ASC) VISIBLE,
-  CONSTRAINT `fk_players_blocked_players1`
+  INDEX `fk_players_banned_players1_idx` (`banned_players_id` ASC) VISIBLE,
+  CONSTRAINT `fk_players_banned_players1`
     FOREIGN KEY (`banned_players_id`)
     REFERENCES `match_score_db`.`banned_players` (`id`)
     ON DELETE NO ACTION
@@ -68,6 +67,7 @@ CREATE TABLE IF NOT EXISTS `match_score_db`.`players` (
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB
+AUTO_INCREMENT = 1
 DEFAULT CHARACTER SET = latin1;
 
 
@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS `match_score_db`.`users` (
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB
+AUTO_INCREMENT = 1
 DEFAULT CHARACTER SET = latin1;
 
 
@@ -112,6 +113,7 @@ CREATE TABLE IF NOT EXISTS `match_score_db`.`admin_requests` (
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB
+AUTO_INCREMENT = 1
 DEFAULT CHARACTER SET = latin1;
 
 
@@ -133,6 +135,7 @@ CREATE TABLE IF NOT EXISTS `match_score_db`.`director_requests` (
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB
+AUTO_INCREMENT = 1
 DEFAULT CHARACTER SET = latin1;
 
 
@@ -153,6 +156,34 @@ CREATE TABLE IF NOT EXISTS `match_score_db`.`matches` (
   `stage` INT(11) NULL DEFAULT NULL,
   PRIMARY KEY (`id`))
 ENGINE = InnoDB
+AUTO_INCREMENT = 1
+DEFAULT CHARACTER SET = latin1;
+
+
+-- -----------------------------------------------------
+-- Table `match_score_db`.`messages`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `match_score_db`.`messages` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `content` VARCHAR(250) NOT NULL,
+  `timestamp` DATETIME NOT NULL,
+  `sender_id` INT(11) NOT NULL,
+  `receiver_id` INT(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `fk_messages_users1_idx` (`sender_id` ASC) VISIBLE,
+  INDEX `fk_messages_users2_idx` (`receiver_id` ASC) VISIBLE,
+  CONSTRAINT `fk_messages_users1`
+    FOREIGN KEY (`sender_id`)
+    REFERENCES `match_score_db`.`users` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_messages_users2`
+    FOREIGN KEY (`receiver_id`)
+    REFERENCES `match_score_db`.`users` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB
+AUTO_INCREMENT = 1
 DEFAULT CHARACTER SET = latin1;
 
 
@@ -245,6 +276,7 @@ CREATE TABLE IF NOT EXISTS `match_score_db`.`tournaments` (
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB
+AUTO_INCREMENT = 1
 DEFAULT CHARACTER SET = latin1;
 
 
@@ -301,15 +333,3 @@ DEFAULT CHARACTER SET = latin1;
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
-
-
-
--- Reset AUTO_INCREMENT values for tables
-ALTER TABLE match_score_db.teams AUTO_INCREMENT = 1;
-ALTER TABLE match_score_db.players AUTO_INCREMENT = 1;
-ALTER TABLE match_score_db.users AUTO_INCREMENT = 1;
-ALTER TABLE match_score_db.admin_requests AUTO_INCREMENT = 1;
-ALTER TABLE match_score_db.matches AUTO_INCREMENT = 1;
-ALTER TABLE match_score_db.tournaments AUTO_INCREMENT = 1;
-ALTER TABLE match_score_db.director_requests AUTO_INCREMENT = 1;
-ALTER TABLE match_score_db.banned_players AUTO_INCREMENT = 1;

@@ -6,10 +6,10 @@ users_router = APIRouter(prefix='/users', tags={'Users'})
 
 
 @users_router.post('/register', description='Please enter your personal information:')
-def register(full_name: str = Query('Georgi Petrov', description='Enter your full name:'),
-             email: str = Query('commencata93@gmail.com', description='Enter your email address:'),
-             password: str = Query('123456', description='Enter your password: (It has to be at least 6 characters!)'),
-             repeat_password: str = Query('123456', description='Re enter your password for validation:'),
+def register(full_name: str = Query(..., description='Enter your full name:'),
+             email: str = Query(..., description='Enter your email address:'),
+             password: str = Query(..., description='Enter your password: (It has to be at least 6 characters!)'),
+             repeat_password: str = Query(..., description='Re enter your password for validation:'),
              gender: str = Form(..., description='Choose a gender:',example='male', enum = ['male', 'female', 'non-binary'])):
     ''' Used for registering new users.
     
@@ -28,7 +28,7 @@ def register(full_name: str = Query('Georgi Petrov', description='Enter your ful
 
 
 @users_router.post('/verification', description='Please fill your personal information to verify your account:')
-def verification(email: str = Query('commencata93@gmail.com', description='Enter your email address:'), 
+def verification(email: str = Query(..., description='Enter your email address:'), 
           verification_code: int = Query(..., description='Enter your verification code:')):
     ''' Used for user to verify his/hers/its account.
 
@@ -44,8 +44,8 @@ def verification(email: str = Query('commencata93@gmail.com', description='Enter
 
 
 @users_router.post('/login', description='Please enter your personal information:')
-def login(email: str = Query('commencata93@gmail.com', description='Enter your email address:'),
-          password: str = Query('123456', description='Enter your password:')):
+def login(email: str = Query(..., description='Enter your email address:'),
+          password: str = Query(..., description='Enter your password:')):
     ''' Used for logging in.
 
     Args:

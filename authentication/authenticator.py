@@ -76,7 +76,7 @@ def create_token(user: User) -> str:
         - encoded JWT token
     '''
 
-    expiration_time = datetime.utcnow() + timedelta(minutes=30)
+    expiration_time = datetime.utcnow() + timedelta(minutes=30000)
 
     payload = {
         "id": user.id,
@@ -98,45 +98,3 @@ def is_authenticated(token: str) -> bool:
     '''
 
     return jwt.decode(token, _JWT_SECRET, algorithms=["HS256"])
-
-
-# def get_user_from_token(token: str) -> User:
-#     '''Decodes JWT token and returns a User object.
-#     Args:
-#         - token (str): Encoded JWT token
-#     Returns:
-#         - User object
-    # '''
-    # try:
-    #     payload = is_authenticated(token)
-    #     user_id = payload['id']
-
-    #     user = find_by_id(user_id)
-    #     if user is None:
-    #         return JSONResponse(status_code=404, content="User not found")
-    #     return user
-    # except jwt.ExpiredSignatureError:
-    #     return JSONResponse(status_code=401, content="Token has expired")
-    # except jwt.InvalidTokenError:
-    #     return JSONResponse(status_code=401, content="Invalid token")
-    # except Exception as e:
-    #     return JSONResponse(status_code=401, content=str(e))
-    
-    # try:
-    #     payload = is_authenticated(token)
-        
-    #     expiration_time = payload.get('exp')
-    #     if datetime.utcnow() > datetime.utcfromtimestamp(expiration_time):
-    #         return JSONResponse(status_code=401, content="Token has expired")
-
-    #     user_id = payload['id']
-    #     user = find_by_id(user_id)
-
-    #     if user is None:
-    #         return JSONResponse(status_code=404, content="User not found")
-
-    #     return user
-    # except jwt.InvalidTokenError:
-    #     return JSONResponse(status_code=401, content="Invalid token")
-    # except Exception as e:
-    #     return JSONResponse(status_code=401, content=str(e))
