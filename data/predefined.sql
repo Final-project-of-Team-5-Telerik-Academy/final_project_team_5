@@ -62,7 +62,7 @@ VALUES ('Steven Atkinson', 'steven.atkinson@gmail.com', '2fca7af39df396e0890de73
        ('Owen Garrett', 'owen.garrett@yahoo.com', 'c2b41017a8036252bb2308ea026284ffd455a9eab57c4b65777fbcd0ac891964', 'male', 'spectator', null, '1', '123454'),
        ('Kyan Chandler', 'chandler_kyan@gmx.de', 'c53c1c5f81b36257b951965239ef46c1c6e6fbb4d4eb01cee58b6dc9bc2ae80c', 'male', 'spectator', null, '1', '123455'),
        ('Frank Warren', 'warwarbinks@gmail.com', '74fca0325b5fdb3a34badb40a2581cfbd5344187e8d3432952a5abc0929c1246', 'male', 'player', '4', '1', '123456'),
-       ('Susan Wilkinson', 'suuusan_123@abv.bg', 'ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f', 'female', 'player', null, '1', '123457');
+       ('Susan Wilkinson', 'suuusan_123@abv.bg', 'ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f', 'female', 'spectator', null, '1', '123457');
 
 
 -- Insert initial data into the admin_requests table
@@ -70,4 +70,12 @@ VALUES ('Steven Atkinson', 'steven.atkinson@gmail.com', '2fca7af39df396e0890de73
 INSERT INTO match_score_db.admin_requests (type_of_request, players_id, users_id, status)
 VALUES ('connection', 6, 5, 'pending');
 
+
+-- Insert initial data into the messages table
+-- ----------------------------------------------------------------------------------
+INSERT INTO match_score_db.messages (content, timestamp, sender_id, receiver_id)
+VALUES ('Hello! How are you?', '2024-02-21 10:21:57', 2, 3),
+       ('Hello! Frank!', '2024-02-21 10:59:46', 2, 7),
+       ('Hi! I am good. How are you! Yes, I want to play a match with you.', '2024-02-21 11:47:09', 3, 2),
+       ('Hey, admin!.', '2024-02-21 12:02:36', 2, 1);
 

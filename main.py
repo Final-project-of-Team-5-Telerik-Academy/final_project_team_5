@@ -8,10 +8,12 @@ from routers.matches import matches_router
 from routers.tournaments import tournaments_router
 from routers.statistics import statistics_router
 from routers.teams import teams_router
+from routers.messages import messages_router
 
 
 app = FastAPI(title='Match Score', description='Organization and management app of sport events.')
 app.include_router(users_router)
+app.include_router(messages_router)
 app.include_router(admins_router)
 app.include_router(players_router)
 app.include_router(admin_requests_router)
@@ -20,7 +22,6 @@ app.include_router(teams_router)
 app.include_router(matches_router)
 app.include_router(tournaments_router)
 app.include_router(statistics_router)
-
 
 
 if __name__ == "__main__":
